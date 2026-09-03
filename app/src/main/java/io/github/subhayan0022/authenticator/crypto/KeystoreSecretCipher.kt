@@ -20,7 +20,7 @@ class EncryptedSecret(val ciphertext: ByteArray, val iv: ByteArray) {
     override fun hashCode(): Int = 31 * ciphertext.contentHashCode() + iv.contentHashCode()
 }
 
-object KeystoreSecretCipher {
+object KeystoreSecretCipher : SecretCipher {
 
     private const val KEYSTORE = "AndroidKeyStore"
     private const val KEY_ALIAS = "totp_secret_key"
@@ -29,14 +29,14 @@ object KeystoreSecretCipher {
 
     private const val AUTH_VALIDITY_SECONDS = 60
 
-    fun encrypt(plaintext: ByteArray): EncryptedSecret {
+    override fun encrypt(plaintext: ByteArray): EncryptedSecret {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, loadOrCreateKey())
 
         return EncryptedSecret(ciphertext = cipher.doFinal(plaintext), iv = cipher.iv)
     }
 
-    fun decrypt(encrypted: EncryptedSecret): ByteArray {
+    override fun decrypt(encrypted: EncryptedSecret): ByteArray {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(
             Cipher.DECRYPT_MODE,
