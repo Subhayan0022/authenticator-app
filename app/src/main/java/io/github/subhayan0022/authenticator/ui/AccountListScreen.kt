@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +27,30 @@ import androidx.compose.ui.unit.dp
 fun AccountListScreen(
     state: AccountListUiState,
     onUnlockClick: () -> Unit,
-    onAddTestAccount: () -> Unit,
+    onAddAccountClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            if (state is AccountListUiState.Ready && state.codes.isNotEmpty()) {
+                ExtendedFloatingActionButton(
+                    onClick = onAddAccountClick,
+                    text = { Text("Add account") },
+                    icon = {},
+                )
+            }
+        },
+    ) { innerPadding ->
+        AccountListContent(state, onUnlockClick, onAddAccountClick, Modifier.padding(innerPadding))
+    }
+}
+
+@Composable
+private fun AccountListContent(
+    state: AccountListUiState,
+    onUnlockClick: () -> Unit,
+    onAddAccountClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -46,22 +71,14 @@ fun AccountListScreen(
         is AccountListUiState.Ready -> if (state.codes.isEmpty()) {
             Centered(modifier) {
                 Text("No accounts yet", style = MaterialTheme.typography.titleLarge)
-                Button(onClick = onAddTestAccount) { Text("Add test account") }
+                Button(onClick = onAddAccountClick) { Text("Add account") }
             }
         } else {
-            Column(modifier.fillMaxSize().padding(16.dp)) {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(state.codes, key = { it.account.id }) { AccountRow(it) }
-                }
-                Button(
-                    onClick = onAddTestAccount,
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                ) {
-                    Text("Add test account")
-                }
+            LazyColumn(
+                modifier = modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(state.codes, key = { it.account.id }) { AccountRow(it) }
             }
         }
     }
