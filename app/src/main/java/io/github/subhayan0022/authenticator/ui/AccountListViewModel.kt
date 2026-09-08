@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.subhayan0022.authenticator.data.Account
 import io.github.subhayan0022.authenticator.data.AccountRepository
 import io.github.subhayan0022.authenticator.data.OtpType
+import io.github.subhayan0022.authenticator.otp.Base32
 import io.github.subhayan0022.authenticator.otp.TotpGenerator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class AccountCode(
     val account: Account,
@@ -64,6 +66,21 @@ class AccountListViewModel(
 
     fun onUnlocked() {
         unlocked.value = true
+    }
+
+    /** Temporary: seeds the RFC test vector so the storage path can be exercised. Removed in Step 3. */
+    fun addTestAccount() {
+        viewModelScope.launch {
+            try {
+                repository.add(
+                    issuer = "Example",
+                    label = "alice@example.com",
+                    secret = Base32.decode("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"),
+                )
+            } catch (e: UserNotAuthenticatedException) {
+                relock()
+            }
+        }
     }
 
     fun relock() {
