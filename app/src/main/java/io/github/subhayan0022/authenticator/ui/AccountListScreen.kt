@@ -1,5 +1,7 @@
 package io.github.subhayan0022.authenticator.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -17,7 +20,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +36,7 @@ fun AccountListScreen(
     state: AccountListUiState,
     onUnlockClick: () -> Unit,
     onAddAccountClick: () -> Unit,
+    onDelete: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -42,7 +51,13 @@ fun AccountListScreen(
             }
         },
     ) { innerPadding ->
-        AccountListContent(state, onUnlockClick, onAddAccountClick, Modifier.padding(innerPadding))
+        AccountListContent(
+            state = state,
+            onUnlockClick = onUnlockClick,
+            onAddAccountClick = onAddAccountClick,
+            onDelete = onDelete,
+            modifier = Modifier.padding(innerPadding),
+        )
     }
 }
 
@@ -51,6 +66,7 @@ private fun AccountListContent(
     state: AccountListUiState,
     onUnlockClick: () -> Unit,
     onAddAccountClick: () -> Unit,
+    onDelete: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -74,19 +90,56 @@ private fun AccountListContent(
                 Button(onClick = onAddAccountClick) { Text("Add account") }
             }
         } else {
+            var pendingDelete by remember { mutableStateOf<AccountCode?>(null) }
+
             LazyColumn(
                 modifier = modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(state.codes, key = { it.account.id }) { AccountRow(it) }
+                items(state.codes, key = { it.account.id }) { item ->
+                    AccountRow(item, onLongPress = { pendingDelete = item })
+                }
+            }
+
+            pendingDelete?.let { target ->
+                AlertDialog(
+                    onDismissRequest = { pendingDelete = null },
+                    title = { Text("Delete ${target.account.issuer}?") },
+                    text = {
+                        Text(
+                            "This permanently removes the secret for " +
+                                "${target.account.label.ifBlank { "this account" }}. " +
+                                "You will not be able to generate codes for it again " +
+                                "unless you re-add it from the original QR code.",
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                onDelete(target.account.id)
+                                pendingDelete = null
+                            },
+                        ) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                    },
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AccountRow(item: AccountCode) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun AccountRow(item: AccountCode, onLongPress: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = {}, onLongClick = onLongPress),
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

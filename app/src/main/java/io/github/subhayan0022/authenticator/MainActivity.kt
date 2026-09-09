@@ -37,6 +37,7 @@ class MainActivity : FragmentActivity() {
                 AuthenticatorNavHost(
                     repository = repository,
                     listState = state,
+                    onDeleteAccount = viewModel::delete,
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),
                 )

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class AccountCode(
     val account: Account,
@@ -64,6 +65,13 @@ class AccountListViewModel(
 
     fun onUnlocked() {
         unlocked.value = true
+    }
+
+    fun delete(id: Long){
+        viewModelScope.launch {
+            codeCache.remove(id)
+            repository.delete(id)
+        }
     }
 
     fun relock() {

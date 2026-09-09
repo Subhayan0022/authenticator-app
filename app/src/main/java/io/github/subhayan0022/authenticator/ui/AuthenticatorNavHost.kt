@@ -21,6 +21,7 @@ data object AddAccountRoute
 fun AuthenticatorNavHost(
     repository: AccountRepository,
     listState: AccountListUiState,
+    onDeleteAccount: (Long) -> Unit,
     onUnlockRequest: (onSuccess: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -36,6 +37,7 @@ fun AuthenticatorNavHost(
                 state = listState,
                 onUnlockClick = { onUnlockRequest {} },
                 onAddAccountClick = { navController.navigate(AddAccountRoute) },
+                onDelete = onDeleteAccount,
             )
         }
 
