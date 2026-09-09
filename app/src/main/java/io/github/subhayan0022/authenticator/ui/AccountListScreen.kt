@@ -16,6 +16,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -25,11 +27,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountListScreen(
@@ -37,10 +41,23 @@ fun AccountListScreen(
     onUnlockClick: () -> Unit,
     onAddAccountClick: () -> Unit,
     onDelete: (Long) -> Unit,
+    onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    val copyAndNotify: (String) -> Unit = { code ->
+        onCopyCode(code)
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar("Code copied - clears in 30s")
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (state is AccountListUiState.Ready && state.codes.isNotEmpty()) {
                 ExtendedFloatingActionButton(
@@ -56,6 +73,7 @@ fun AccountListScreen(
             onUnlockClick = onUnlockClick,
             onAddAccountClick = onAddAccountClick,
             onDelete = onDelete,
+            onCopyCode = copyAndNotify,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -67,6 +85,7 @@ private fun AccountListContent(
     onUnlockClick: () -> Unit,
     onAddAccountClick: () -> Unit,
     onDelete: (Long) -> Unit,
+    onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -97,7 +116,11 @@ private fun AccountListContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(state.codes, key = { it.account.id }) { item ->
-                    AccountRow(item, onLongPress = { pendingDelete = item })
+                    AccountRow(
+                        item = item,
+                        onCopy = { onCopyCode(item.code) },
+                        onLongPress = { pendingDelete = item },
+                    )
                 }
             }
 
@@ -134,11 +157,15 @@ private fun AccountListContent(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AccountRow(item: AccountCode, onLongPress: () -> Unit) {
+private fun AccountRow(
+    item: AccountCode,
+    onCopy: () -> Unit,
+    onLongPress: () -> Unit,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = {}, onLongClick = onLongPress),
+            .combinedClickable(onClick = onCopy, onLongClick = onLongPress),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),

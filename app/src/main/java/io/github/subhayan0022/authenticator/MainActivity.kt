@@ -13,6 +13,7 @@ import io.github.subhayan0022.authenticator.crypto.AppUnlock
 import io.github.subhayan0022.authenticator.data.AccountRepository
 import io.github.subhayan0022.authenticator.data.DatabaseProvider
 import io.github.subhayan0022.authenticator.ui.AuthenticatorNavHost
+import io.github.subhayan0022.authenticator.ui.SecureClipboard
 import io.github.subhayan0022.authenticator.ui.AccountListViewModel
 import io.github.subhayan0022.authenticator.ui.theme.AuthenticatorTheme
 
@@ -21,6 +22,8 @@ class MainActivity : FragmentActivity() {
     private val repository by lazy {
         AccountRepository(DatabaseProvider.get(applicationContext).accountDao())
     }
+
+    private val clipboard by lazy { SecureClipboard(this) }
 
     private val viewModel: AccountListViewModel by viewModels {
         AccountListViewModel.factory(repository)
@@ -38,6 +41,7 @@ class MainActivity : FragmentActivity() {
                     repository = repository,
                     listState = state,
                     onDeleteAccount = viewModel::delete,
+                    onCopyCode = clipboard::copyCode,
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),
                 )
