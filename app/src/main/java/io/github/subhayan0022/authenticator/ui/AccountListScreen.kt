@@ -41,6 +41,7 @@ fun AccountListScreen(
     onUnlockClick: () -> Unit,
     onAddAccountClick: () -> Unit,
     onDelete: (Long) -> Unit,
+    onEditAccount: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,6 +74,7 @@ fun AccountListScreen(
             onUnlockClick = onUnlockClick,
             onAddAccountClick = onAddAccountClick,
             onDelete = onDelete,
+            onEditAccount = onEditAccount,
             onCopyCode = copyAndNotify,
             modifier = Modifier.padding(innerPadding),
         )
@@ -85,6 +87,7 @@ private fun AccountListContent(
     onUnlockClick: () -> Unit,
     onAddAccountClick: () -> Unit,
     onDelete: (Long) -> Unit,
+    onEditAccount: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -109,6 +112,7 @@ private fun AccountListContent(
                 Button(onClick = onAddAccountClick) { Text("Add account") }
             }
         } else {
+            var selected by remember { mutableStateOf<AccountCode?>(null) }
             var pendingDelete by remember { mutableStateOf<AccountCode?>(null) }
 
             LazyColumn(
@@ -119,9 +123,37 @@ private fun AccountListContent(
                     AccountRow(
                         item = item,
                         onCopy = { onCopyCode(item.code) },
-                        onLongPress = { pendingDelete = item },
+                        onLongPress = { selected = item },
                     )
                 }
+            }
+
+            selected?.let { target ->
+                AlertDialog(
+                    onDismissRequest = { selected = null },
+                    title = { Text(target.account.issuer) },
+                    text = { Text(target.account.label.ifBlank { "No account name" }) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                selected = null
+                                onEditAccount(target.account.id)
+                            },
+                        ) {
+                            Text("Edit")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                pendingDelete = target
+                                selected = null
+                            },
+                        ) {
+                            Text("Delete")
+                        }
+                    },
+                )
             }
 
             pendingDelete?.let { target ->

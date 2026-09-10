@@ -96,6 +96,8 @@ class AccountRepository(
         )
     }
 
+    suspend fun account(id: Long): Account? = dao.findById(id)?.toAccount()
+
     suspend fun delete(id: Long) {
         dao.findById(id)?.let { dao.delete(it) }
     }

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import io.github.subhayan0022.authenticator.data.AccountRepository
 import kotlinx.serialization.Serializable
 
@@ -16,6 +17,9 @@ data object AccountListRoute
 
 @Serializable
 data object AddAccountRoute
+
+@Serializable
+data class EditAccountRoute(val accountId: Long)
 
 @Composable
 fun AuthenticatorNavHost(
@@ -39,6 +43,7 @@ fun AuthenticatorNavHost(
                 onUnlockClick = { onUnlockRequest {} },
                 onAddAccountClick = { navController.navigate(AddAccountRoute) },
                 onDelete = onDeleteAccount,
+                onEditAccount = { navController.navigate(EditAccountRoute(it)) },
                 onCopyCode = onCopyCode,
             )
         }
@@ -58,6 +63,23 @@ fun AuthenticatorNavHost(
                 onUnlockAndSave = {
                     onUnlockRequest { addViewModel.save { navController.popBackStack() } }
                 },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<EditAccountRoute> { entry ->
+            val route: EditAccountRoute = entry.toRoute()
+
+            val editViewModel: EditAccountViewModel =
+                viewModel(factory = EditAccountViewModel.factory(repository, route.accountId))
+            val form by editViewModel.form.collectAsStateWithLifecycle()
+
+            EditAccountScreen(
+                form = form,
+                onIssuerChange = editViewModel::onIssuerChange,
+                onLabelChange = editViewModel::onLabelChange,
+                onGroupChange = editViewModel::onGroupChange,
+                onSave = { editViewModel.save { navController.popBackStack() } },
                 onBack = { navController.popBackStack() },
             )
         }
