@@ -42,6 +42,7 @@ fun AccountListScreen(
     onAddAccountClick: () -> Unit,
     onDelete: (Long) -> Unit,
     onEditAccount: (Long) -> Unit,
+    onMove: (Long, Int) -> Unit,
     onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -75,6 +76,7 @@ fun AccountListScreen(
             onAddAccountClick = onAddAccountClick,
             onDelete = onDelete,
             onEditAccount = onEditAccount,
+            onMove = onMove,
             onCopyCode = copyAndNotify,
             modifier = Modifier.padding(innerPadding),
         )
@@ -88,6 +90,7 @@ private fun AccountListContent(
     onAddAccountClick: () -> Unit,
     onDelete: (Long) -> Unit,
     onEditAccount: (Long) -> Unit,
+    onMove: (Long, Int) -> Unit,
     onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -129,29 +132,58 @@ private fun AccountListContent(
             }
 
             selected?.let { target ->
+                val index = state.codes.indexOfFirst { it.account.id == target.account.id }
+
                 AlertDialog(
                     onDismissRequest = { selected = null },
                     title = { Text(target.account.issuer) },
-                    text = { Text(target.account.label.ifBlank { "No account name" }) },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                selected = null
-                                onEditAccount(target.account.id)
-                            },
-                        ) {
-                            Text("Edit")
+                    text = {
+                        Column {
+                            TextButton(
+                                onClick = {
+                                    selected = null
+                                    onEditAccount(target.account.id)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Edit")
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    selected = null
+                                    onMove(target.account.id, -1)
+                                },
+                                enabled = index > 0,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Move up")
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    selected = null
+                                    onMove(target.account.id, 1)
+                                },
+                                enabled = index in 0 until state.codes.lastIndex,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Move down")
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    pendingDelete = target
+                                    selected = null
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Delete")
+                            }
                         }
                     },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                pendingDelete = target
-                                selected = null
-                            },
-                        ) {
-                            Text("Delete")
-                        }
+                    confirmButton = {
+                        TextButton(onClick = { selected = null }) { Text("Cancel") }
                     },
                 )
             }

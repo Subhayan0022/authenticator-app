@@ -67,6 +67,12 @@ class AccountListViewModel(
         unlocked.value = true
     }
 
+    fun move(id: Long, offset: Int) {
+        viewModelScope.launch {
+            repository.move(id, offset)
+        }
+    }
+
     fun delete(id: Long){
         viewModelScope.launch {
             codeCache.remove(id)

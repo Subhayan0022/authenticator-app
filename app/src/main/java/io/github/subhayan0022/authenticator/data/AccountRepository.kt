@@ -1,5 +1,6 @@
 package io.github.subhayan0022.authenticator.data
 
+import androidx.compose.ui.geometry.Offset
 import io.github.subhayan0022.authenticator.crypto.KeystoreSecretCipher
 import io.github.subhayan0022.authenticator.crypto.SecretCipher
 import io.github.subhayan0022.authenticator.otp.HotpGenerator
@@ -97,6 +98,8 @@ class AccountRepository(
     }
 
     suspend fun account(id: Long): Account? = dao.findById(id)?.toAccount()
+
+    suspend fun move(id: Long, offset: Int) = dao.move(id, offset)
 
     suspend fun delete(id: Long) {
         dao.findById(id)?.let { dao.delete(it) }

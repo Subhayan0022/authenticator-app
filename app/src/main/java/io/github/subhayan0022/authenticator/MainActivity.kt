@@ -41,6 +41,7 @@ class MainActivity : FragmentActivity() {
                     repository = repository,
                     listState = state,
                     onDeleteAccount = viewModel::delete,
+                    onMoveAccount = viewModel::move,
                     onCopyCode = clipboard::copyCode,
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),

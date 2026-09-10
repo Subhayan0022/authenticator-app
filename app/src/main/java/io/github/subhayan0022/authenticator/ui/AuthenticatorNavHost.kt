@@ -26,6 +26,7 @@ fun AuthenticatorNavHost(
     repository: AccountRepository,
     listState: AccountListUiState,
     onDeleteAccount: (Long) -> Unit,
+    onMoveAccount: (Long, Int) -> Unit,
     onCopyCode: (String) -> Unit,
     onUnlockRequest: (onSuccess: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
@@ -44,6 +45,7 @@ fun AuthenticatorNavHost(
                 onAddAccountClick = { navController.navigate(AddAccountRoute) },
                 onDelete = onDeleteAccount,
                 onEditAccount = { navController.navigate(EditAccountRoute(it)) },
+                onMove = onMoveAccount,
                 onCopyCode = onCopyCode,
             )
         }
