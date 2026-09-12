@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import io.github.subhayan0022.authenticator.data.OtpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +34,7 @@ fun AddAccountScreen(
     onGroupChange: (String) -> Unit,
     onSecretChange: (String) -> Unit,
     onSave: () -> Unit,
+    onScanClick: () -> Unit,
     onUnlockAndSave: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -55,6 +58,13 @@ fun AddAccountScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            OutlinedButton(
+                onClick = onScanClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Scan QR code")
+            }
+
             OutlinedTextField(
                 value = form.issuer,
                 onValueChange = onIssuerChange,
@@ -101,6 +111,19 @@ fun AddAccountScreen(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            if (form.scanned) {
+                Text(
+                    "From QR code: ${form.type}, ${form.algorithm.removePrefix("Hmac")}, " +
+                        "${form.digits} digits, " +
+                        if (form.type == OtpType.HOTP) {
+                            "counter ${form.counter}"
+                        } else {
+                            "${form.periodSeconds}s period"
+                        },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
 
             form.saveError?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)

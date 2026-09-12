@@ -26,6 +26,7 @@ class AccountRepository(
         algorithm: String = "HmacSHA1",
         digits: Int = 6,
         periodSeconds: Int = TotpGenerator.DEFAULT_PERIOD_SECONDS,
+        counter: Long = 0,
     ): Long = try {
         dao.insert(
             AccountEntity(
@@ -37,6 +38,7 @@ class AccountRepository(
                 algorithm = algorithm,
                 digits = digits,
                 periodSeconds = periodSeconds,
+                counter = counter,
             ),
         )
     } finally {

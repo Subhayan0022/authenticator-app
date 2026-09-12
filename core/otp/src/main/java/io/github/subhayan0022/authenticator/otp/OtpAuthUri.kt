@@ -11,6 +11,7 @@ class OtpAuthData(
     val issuer: String,
     val label: String,
     val secret: ByteArray,
+    val secretBase32: String,
     val algorithm: String,
     val digits: Int,
     val periodSeconds: Int,
@@ -48,9 +49,10 @@ object OtpAuthUri {
 
         val params = queryParams(uri.rawQuery)
 
-        val secret = params["secret"]
-            ?.let { decodeSecret(it) }
+        val secretBase32 = params["secret"]
+            ?.takeIf { it.isNotBlank() }
             ?: throw InvalidUriException("Link has no secret")
+        val secret = decodeSecret(secretBase32)
 
         val (pathIssuer, label) = splitLabel(uri.rawPath)
 
@@ -60,6 +62,7 @@ object OtpAuthUri {
                 .take(MAX_TEXT_LENGTH),
             label = label.take(MAX_TEXT_LENGTH),
             secret = secret,
+            secretBase32 = secretBase32,
             algorithm = algorithm(params["algorithm"]),
             digits = digits(params["digits"]),
             periodSeconds = period(params["period"]),
