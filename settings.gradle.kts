@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Authenticator"
 include(":app")
 include(":core:otp")
+include(":core:backup")

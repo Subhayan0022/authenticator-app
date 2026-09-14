@@ -9,6 +9,8 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+# Any module build dir, not just the root one
+build/
 /captures
 .externalNativeBuild
 .cxx
