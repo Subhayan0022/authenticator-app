@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.subhayan0022.authenticator.data.Account
 import io.github.subhayan0022.authenticator.data.AccountRepository
+import io.github.subhayan0022.authenticator.data.LockSettings
 import io.github.subhayan0022.authenticator.data.OtpType
 import io.github.subhayan0022.authenticator.otp.TotpGenerator
 import kotlinx.coroutines.delay
@@ -33,9 +34,11 @@ sealed interface AccountListUiState {
 
 class AccountListViewModel(
     private val repository: AccountRepository,
+    private val lockSettings: LockSettings,
 ) : ViewModel() {
 
-    private val unlocked = MutableStateFlow(false)
+    /** Millis of the last successful authentication, or 0 when locked. */
+    private val unlockedAt = MutableStateFlow(0L)
 
     /** accountId -> (time step or counter, code) — the code is cached, the secret never is. */
     private val codeCache = mutableMapOf<Long, Pair<Long, String>>()
@@ -48,8 +51,18 @@ class AccountListViewModel(
     }
 
     val uiState: StateFlow<AccountListUiState> =
-        combine(unlocked, repository.observeAccounts(), tick) { isUnlocked, accounts, now ->
-            if (!isUnlocked) return@combine AccountListUiState.Locked
+        combine(
+            unlockedAt,
+            repository.observeAccounts(),
+            tick,
+            lockSettings.autoLockSeconds,
+        ) { authenticatedAt, accounts, now, autoLockSeconds ->
+            if (authenticatedAt == 0L) return@combine AccountListUiState.Locked
+
+            if (now - authenticatedAt >= autoLockSeconds * 1_000L) {
+                relock()
+                return@combine AccountListUiState.Locked
+            }
 
             try {
                 AccountListUiState.Ready(accounts.map { codeFor(it, now) })
@@ -64,7 +77,7 @@ class AccountListViewModel(
         )
 
     fun onUnlocked() {
-        unlocked.value = true
+        unlockedAt.value = System.currentTimeMillis()
     }
 
     fun move(id: Long, offset: Int) {
@@ -82,7 +95,7 @@ class AccountListViewModel(
 
     fun relock() {
         codeCache.clear()
-        unlocked.value = false
+        unlockedAt.value = 0L
     }
 
     private suspend fun codeFor(account: Account, now: Long): AccountCode {
@@ -110,8 +123,11 @@ class AccountListViewModel(
     }
 
     companion object {
-        fun factory(repository: AccountRepository): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AccountListViewModel(repository) }
+        fun factory(
+            repository: AccountRepository,
+            lockSettings: LockSettings,
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer { AccountListViewModel(repository, lockSettings) }
         }
     }
 }

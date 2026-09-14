@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -35,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountListScreen(
     state: AccountListUiState,
@@ -44,6 +47,7 @@ fun AccountListScreen(
     onEditAccount: (Long) -> Unit,
     onMove: (Long, Int) -> Unit,
     onCopyCode: (String) -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -60,6 +64,12 @@ fun AccountListScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Authenticator") },
+                actions = { TextButton(onClick = onSettingsClick) { Text("Settings") } },
+            )
+        },
         floatingActionButton = {
             if (state is AccountListUiState.Ready && state.codes.isNotEmpty()) {
                 ExtendedFloatingActionButton(

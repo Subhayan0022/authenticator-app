@@ -1,12 +1,14 @@
 package io.github.subhayan0022.authenticator.crypto
 
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
 
 class EncryptedSecret(val ciphertext: ByteArray, val iv: ByteArray) {
@@ -27,7 +29,7 @@ object KeystoreSecretCipher : SecretCipher {
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
     private const val GCM_TAG_BITS = 128
 
-    private const val AUTH_VALIDITY_SECONDS = 60
+    private const val AUTH_VALIDITY_SECONDS = 300
 
     override fun encrypt(plaintext: ByteArray): EncryptedSecret {
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -44,6 +46,22 @@ object KeystoreSecretCipher : SecretCipher {
             GCMParameterSpec(GCM_TAG_BITS, encrypted.iv),
         )
         return cipher.doFinal(encrypted.ciphertext)
+    }
+
+    /**
+     * How long the existing key stays usable after one authentication.
+     * Read from the key itself rather than assumed, because the value is fixed
+     * when the key is created and older installs carry a shorter window.
+     */
+    fun keyValiditySeconds(): Int = try {
+        val key = loadOrCreateKey()
+        val factory = SecretKeyFactory.getInstance(key.algorithm, KEYSTORE)
+        val info = factory.getKeySpec(key, KeyInfo::class.java) as KeyInfo
+
+        info.userAuthenticationValidityDurationSeconds.takeIf { it > 0 }
+            ?: AUTH_VALIDITY_SECONDS
+    } catch (e: Exception) {
+        AUTH_VALIDITY_SECONDS
     }
 
     private fun loadOrCreateKey(): SecretKey {

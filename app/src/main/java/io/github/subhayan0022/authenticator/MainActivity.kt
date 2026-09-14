@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
@@ -12,6 +13,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.subhayan0022.authenticator.crypto.AppUnlock
 import io.github.subhayan0022.authenticator.data.AccountRepository
 import io.github.subhayan0022.authenticator.data.DatabaseProvider
+import io.github.subhayan0022.authenticator.data.LockSettings
+import io.github.subhayan0022.authenticator.crypto.KeystoreSecretCipher
 import io.github.subhayan0022.authenticator.ui.AuthenticatorNavHost
 import io.github.subhayan0022.authenticator.ui.SecureClipboard
 import io.github.subhayan0022.authenticator.ui.AccountListViewModel
@@ -25,13 +28,19 @@ class MainActivity : FragmentActivity() {
 
     private val clipboard by lazy { SecureClipboard(this) }
 
+    private val lockSettings by lazy {
+        LockSettings(this, KeystoreSecretCipher.keyValiditySeconds())
+    }
+
     private val viewModel: AccountListViewModel by viewModels {
-        AccountListViewModel.factory(repository)
+        AccountListViewModel.factory(repository, lockSettings)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val fromShortcut = intent?.getBooleanExtra(EXTRA_PROMPT_UNLOCK, false) == true
 
         setContent {
             AuthenticatorTheme {
@@ -39,6 +48,7 @@ class MainActivity : FragmentActivity() {
 
                 AuthenticatorNavHost(
                     repository = repository,
+                    lockSettings = lockSettings,
                     listState = state,
                     onDeleteAccount = viewModel::delete,
                     onMoveAccount = viewModel::move,
@@ -46,8 +56,16 @@ class MainActivity : FragmentActivity() {
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),
                 )
+
+                LaunchedEffect(fromShortcut) {
+                    if (fromShortcut) unlock {}
+                }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_PROMPT_UNLOCK = "promptUnlock"
     }
 
     private fun unlock(onSuccess: () -> Unit) {

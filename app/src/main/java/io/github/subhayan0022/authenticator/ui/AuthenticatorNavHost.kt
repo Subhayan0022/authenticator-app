@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.github.subhayan0022.authenticator.data.AccountRepository
+import io.github.subhayan0022.authenticator.data.LockSettings
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -25,11 +26,15 @@ data class EditAccountRoute(val accountId: Long)
 @Serializable
 data object ScanQrRoute
 
+@Serializable
+data object SettingsRoute
+
 private const val SCANNED_URI = "scannedUri"
 
 @Composable
 fun AuthenticatorNavHost(
     repository: AccountRepository,
+    lockSettings: LockSettings,
     listState: AccountListUiState,
     onDeleteAccount: (Long) -> Unit,
     onMoveAccount: (Long, Int) -> Unit,
@@ -45,6 +50,8 @@ fun AuthenticatorNavHost(
         modifier = modifier,
     ) {
         composable<AccountListRoute> {
+            SecureScreen()
+
             AccountListScreen(
                 state = listState,
                 onUnlockClick = { onUnlockRequest {} },
@@ -53,6 +60,7 @@ fun AuthenticatorNavHost(
                 onEditAccount = { navController.navigate(EditAccountRoute(it)) },
                 onMove = onMoveAccount,
                 onCopyCode = onCopyCode,
+                onSettingsClick = { navController.navigate(SettingsRoute) },
             )
         }
 
@@ -60,6 +68,8 @@ fun AuthenticatorNavHost(
             val addViewModel: AddAccountViewModel =
                 viewModel(factory = AddAccountViewModel.factory(repository))
             val form by addViewModel.form.collectAsStateWithLifecycle()
+
+            SecureScreen()
 
             val scanned by entry.savedStateHandle
                 .getStateFlow<String?>(SCANNED_URI, null)
@@ -99,7 +109,21 @@ fun AuthenticatorNavHost(
             )
         }
 
+        composable<SettingsRoute> {
+            val autoLock by lockSettings.autoLockSeconds.collectAsStateWithLifecycle()
+
+            SettingsScreen(
+                autoLockSeconds = autoLock,
+                options = lockSettings.options,
+                keyValiditySeconds = lockSettings.options.last(),
+                onAutoLockChange = lockSettings::setAutoLockSeconds,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
         composable<EditAccountRoute> { entry ->
+            SecureScreen()
+
             val route: EditAccountRoute = entry.toRoute()
 
             val editViewModel: EditAccountViewModel =
