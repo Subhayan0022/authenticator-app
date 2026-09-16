@@ -34,4 +34,32 @@ object Base32 {
 
         return output
     }
+
+    fun encode(data: ByteArray): String {
+        if (data.isEmpty()) return ""
+
+        val out = StringBuilder()
+        var buffer = 0
+        var bits = 0
+
+        for (byte in data) {
+            buffer = (buffer shl 8) or (byte.toInt() and 0xFF)
+            bits += 8
+
+            while (bits >= 5) {
+                out.append(ALPHABET[(buffer ushr (bits - 5)) and 0x1F])
+                bits -= 5
+            }
+        }
+
+        if (bits > 0) {
+            out.append(ALPHABET[(buffer shl (5 - bits)) and 0x1F])
+        }
+
+        while (out.length % 8 != 0) {
+            out.append('=')
+        }
+
+        return out.toString()
+    }
 }

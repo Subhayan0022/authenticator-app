@@ -1,5 +1,6 @@
 package io.github.subhayan0022.authenticator.otp
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -42,5 +43,25 @@ class Base32Test {
     @Test(expected = Base32.InvalidBase32Exception::class)
     fun `rejects an empty secret`() {
         Base32.decode("   ")
+    }
+
+    @Test
+    fun `encodes the RFC 4648 vectors`() {
+        assertEquals("", Base32.encode("".toByteArray()))
+        assertEquals("MY======", Base32.encode("f".toByteArray()))
+        assertEquals("MZXQ====", Base32.encode("fo".toByteArray()))
+        assertEquals("MZXW6===", Base32.encode("foo".toByteArray()))
+        assertEquals("MZXW6YQ=", Base32.encode("foob".toByteArray()))
+        assertEquals("MZXW6YTB", Base32.encode("fooba".toByteArray()))
+        assertEquals("MZXW6YTBOI======", Base32.encode("foobar".toByteArray()))
+    }
+
+    @Test
+    fun `encode and decode round trip every length`() {
+        for (length in 1..40) {
+            val data = ByteArray(length) { (it * 7 + 3).toByte() }
+
+            assertArrayEquals(data, Base32.decode(Base32.encode(data)))
+        }
     }
 }

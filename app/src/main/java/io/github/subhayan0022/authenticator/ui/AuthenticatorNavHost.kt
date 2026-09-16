@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -28,6 +29,9 @@ data object ScanQrRoute
 
 @Serializable
 data object SettingsRoute
+
+@Serializable
+data class BackupRoute(val importing: Boolean)
 
 private const val SCANNED_URI = "scannedUri"
 
@@ -117,6 +121,39 @@ fun AuthenticatorNavHost(
                 options = lockSettings.options,
                 keyValiditySeconds = lockSettings.options.last(),
                 onAutoLockChange = lockSettings::setAutoLockSeconds,
+                onExportClick = { navController.navigate(BackupRoute(importing = false)) },
+                onImportClick = { navController.navigate(BackupRoute(importing = true)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<BackupRoute> { entry ->
+            SecureScreen()
+
+            val route: BackupRoute = entry.toRoute()
+            val context = LocalContext.current
+
+            val backupViewModel: BackupViewModel =
+                viewModel(factory = BackupViewModel.factory(repository))
+            val backupState by backupViewModel.state.collectAsStateWithLifecycle()
+
+            LaunchedEffect(route.importing) {
+                backupViewModel.setMode(
+                    if (route.importing) BackupMode.IMPORT else BackupMode.EXPORT,
+                )
+            }
+
+            BackupScreen(
+                state = backupState,
+                onPasswordChange = backupViewModel::onPasswordChange,
+                onConfirmPasswordChange = backupViewModel::onConfirmPasswordChange,
+                onExport = { uri ->
+                    backupViewModel.export(context, uri) { navController.popBackStack() }
+                },
+                onImport = { uri ->
+                    backupViewModel.import(context, uri) { navController.popBackStack() }
+                },
+                onUnlock = { onUnlockRequest {} },
                 onBack = { navController.popBackStack() },
             )
         }

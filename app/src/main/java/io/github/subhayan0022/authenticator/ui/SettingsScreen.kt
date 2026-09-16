@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,6 +29,8 @@ fun SettingsScreen(
     options: List<Int>,
     keyValiditySeconds: Int,
     onAutoLockChange: (Int) -> Unit,
+    onExportClick: () -> Unit,
+    onImportClick: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -71,6 +75,26 @@ fun SettingsScreen(
                     )
                     Text(label(seconds), modifier = Modifier.padding(start = 8.dp))
                 }
+            }
+
+            Text(
+                "Backup",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 24.dp),
+            )
+
+            Text(
+                "Your secrets cannot leave this device on their own. Without a backup, " +
+                    "losing the device or changing the screen lock loses every account.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(onClick = onExportClick) { Text("Export") }
+                OutlinedButton(onClick = onImportClick) { Text("Import") }
             }
 
             Text(

@@ -3,6 +3,9 @@ package io.github.subhayan0022.authenticator.data
 import androidx.compose.ui.geometry.Offset
 import io.github.subhayan0022.authenticator.crypto.KeystoreSecretCipher
 import io.github.subhayan0022.authenticator.crypto.SecretCipher
+import io.github.subhayan0022.authenticator.backup.BackupAccount
+import io.github.subhayan0022.authenticator.backup.BackupPayload
+import io.github.subhayan0022.authenticator.otp.Base32
 import io.github.subhayan0022.authenticator.otp.HotpGenerator
 import io.github.subhayan0022.authenticator.otp.TotpGenerator
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +42,7 @@ class AccountRepository(
                 digits = digits,
                 periodSeconds = periodSeconds,
                 counter = counter,
+                sortOrder = dao.allOrdered().size,
             ),
         )
     } finally {
@@ -100,6 +104,69 @@ class AccountRepository(
     }
 
     suspend fun account(id: Long): Account? = dao.findById(id)?.toAccount()
+
+    suspend fun exportPayload(): BackupPayload = BackupPayload(
+        accounts = dao.allOrdered().map { entity ->
+            val secret = cipher.decrypt(entity.secret)
+
+            try {
+                BackupAccount(
+                    issuer = entity.issuer,
+                    label = entity.label,
+                    secretBase32 = Base32.encode(secret),
+                    type = entity.type.name,
+                    algorithm = entity.algorithm,
+                    digits = entity.digits,
+                    periodSeconds = entity.periodSeconds,
+                    counter = entity.counter,
+                    group = entity.groupName,
+                    sortOrder = entity.sortOrder,
+                )
+            } finally {
+                secret.fill(0)
+            }
+        },
+    )
+
+    suspend fun importPayload(payload: BackupPayload): Int {
+        var imported = 0
+        var nextSortOrder = dao.allOrdered().size
+
+        payload.accounts.forEach { account ->
+            val secret = try {
+                Base32.decode(account.secretBase32)
+            } catch (e: Base32.InvalidBase32Exception) {
+                return@forEach
+            }
+
+            val type = when (account.type.uppercase()) {
+                "HOTP" -> OtpType.HOTP
+                else -> OtpType.TOTP
+            }
+
+            try {
+                dao.insert(
+                    AccountEntity(
+                        issuer = account.issuer,
+                        label = account.label,
+                        groupName = account.group,
+                        secret = cipher.encrypt(secret),
+                        type = type,
+                        algorithm = account.algorithm,
+                        digits = account.digits,
+                        periodSeconds = account.periodSeconds,
+                        counter = account.counter,
+                        sortOrder = nextSortOrder++,
+                    ),
+                )
+                imported++
+            } finally {
+                secret.fill(0)
+            }
+        }
+
+        return imported
+    }
 
     suspend fun move(id: Long, offset: Int) = dao.move(id, offset)
 
