@@ -153,7 +153,11 @@ fun AuthenticatorNavHost(
                 onImport = { uri ->
                     backupViewModel.import(context, uri) { navController.popBackStack() }
                 },
-                onUnlock = { onUnlockRequest {} },
+                onUnlock = {
+                    onUnlockRequest {
+                        backupViewModel.retry(context) { navController.popBackStack() }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }
