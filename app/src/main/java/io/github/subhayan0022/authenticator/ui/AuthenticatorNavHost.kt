@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.github.subhayan0022.authenticator.data.AccountRepository
+import io.github.subhayan0022.authenticator.data.BackupReminder
 import io.github.subhayan0022.authenticator.data.LockSettings
 import kotlinx.serialization.Serializable
 
@@ -39,9 +40,11 @@ private const val SCANNED_URI = "scannedUri"
 fun AuthenticatorNavHost(
     repository: AccountRepository,
     lockSettings: LockSettings,
+    backupReminder: BackupReminder,
     listState: AccountListUiState,
     onDeleteAccount: (Long) -> Unit,
     onMoveAccount: (Long, Int) -> Unit,
+    onAdvanceHotp: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
     onUnlockRequest: (onSuccess: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
@@ -56,6 +59,8 @@ fun AuthenticatorNavHost(
         composable<AccountListRoute> {
             SecureScreen()
 
+            val shouldRemind by backupReminder.shouldRemind.collectAsStateWithLifecycle()
+
             AccountListScreen(
                 state = listState,
                 onUnlockClick = { onUnlockRequest {} },
@@ -63,8 +68,12 @@ fun AuthenticatorNavHost(
                 onDelete = onDeleteAccount,
                 onEditAccount = { navController.navigate(EditAccountRoute(it)) },
                 onMove = onMoveAccount,
+                onAdvanceHotp = onAdvanceHotp,
                 onCopyCode = onCopyCode,
                 onSettingsClick = { navController.navigate(SettingsRoute) },
+                showBackupReminder = shouldRemind,
+                onBackupNow = { navController.navigate(BackupRoute(importing = false)) },
+                onDismissReminder = backupReminder::dismissForNow,
             )
         }
 
@@ -134,7 +143,7 @@ fun AuthenticatorNavHost(
             val context = LocalContext.current
 
             val backupViewModel: BackupViewModel =
-                viewModel(factory = BackupViewModel.factory(repository))
+                viewModel(factory = BackupViewModel.factory(repository, backupReminder))
             val backupState by backupViewModel.state.collectAsStateWithLifecycle()
 
             LaunchedEffect(route.importing) {

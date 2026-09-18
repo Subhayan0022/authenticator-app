@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.subhayan0022.authenticator.data.OtpType
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,8 +47,12 @@ fun AccountListScreen(
     onDelete: (Long) -> Unit,
     onEditAccount: (Long) -> Unit,
     onMove: (Long, Int) -> Unit,
+    onAdvanceHotp: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
     onSettingsClick: () -> Unit,
+    showBackupReminder: Boolean,
+    onBackupNow: () -> Unit,
+    onDismissReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -87,7 +92,11 @@ fun AccountListScreen(
             onDelete = onDelete,
             onEditAccount = onEditAccount,
             onMove = onMove,
+            onAdvanceHotp = onAdvanceHotp,
             onCopyCode = copyAndNotify,
+            showBackupReminder = showBackupReminder,
+            onBackupNow = onBackupNow,
+            onDismissReminder = onDismissReminder,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -101,7 +110,11 @@ private fun AccountListContent(
     onDelete: (Long) -> Unit,
     onEditAccount: (Long) -> Unit,
     onMove: (Long, Int) -> Unit,
+    onAdvanceHotp: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
+    showBackupReminder: Boolean,
+    onBackupNow: () -> Unit,
+    onDismissReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -132,6 +145,15 @@ private fun AccountListContent(
                 modifier = modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (showBackupReminder) {
+                    item(key = "backup-reminder") {
+                        BackupReminderCard(
+                            onBackupNow = onBackupNow,
+                            onDismiss = onDismissReminder,
+                        )
+                    }
+                }
+
                 items(state.codes, key = { it.account.id }) { item ->
                     AccountRow(
                         item = item,
@@ -157,6 +179,18 @@ private fun AccountListContent(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text("Edit")
+                            }
+
+                            if (target.account.type == OtpType.HOTP) {
+                                TextButton(
+                                    onClick = {
+                                        selected = null
+                                        onAdvanceHotp(target.account.id)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Next code")
+                                }
                             }
 
                             TextButton(
@@ -224,6 +258,27 @@ private fun AccountListContent(
                         TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
                     },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackupReminderCard(onBackupNow: () -> Unit, onDismiss: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("No backup yet", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "These secrets exist only on this device. Losing it, or changing " +
+                    "the screen lock, loses every account permanently.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onBackupNow) { Text("Back up now") }
+                TextButton(onClick = onDismiss) { Text("Not now") }
             }
         }
     }

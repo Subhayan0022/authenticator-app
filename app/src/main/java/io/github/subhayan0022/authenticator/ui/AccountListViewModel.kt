@@ -86,6 +86,16 @@ class AccountListViewModel(
         }
     }
 
+    fun advanceHotp(id: Long) {
+        viewModelScope.launch {
+            try {
+                repository.advanceHotp(id)
+            } catch (e: UserNotAuthenticatedException) {
+                relock()
+            }
+        }
+    }
+
     fun delete(id: Long){
         viewModelScope.launch {
             codeCache.remove(id)

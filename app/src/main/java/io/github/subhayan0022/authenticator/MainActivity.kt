@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.subhayan0022.authenticator.crypto.AppUnlock
 import io.github.subhayan0022.authenticator.data.AccountRepository
 import io.github.subhayan0022.authenticator.data.DatabaseProvider
+import io.github.subhayan0022.authenticator.data.BackupReminder
 import io.github.subhayan0022.authenticator.data.LockSettings
 import io.github.subhayan0022.authenticator.crypto.KeystoreSecretCipher
 import io.github.subhayan0022.authenticator.ui.AuthenticatorNavHost
@@ -27,6 +28,8 @@ class MainActivity : FragmentActivity() {
     }
 
     private val clipboard by lazy { SecureClipboard(this) }
+
+    private val backupReminder by lazy { BackupReminder(this) }
 
     private val lockSettings by lazy {
         LockSettings(this, KeystoreSecretCipher.keyValiditySeconds())
@@ -49,9 +52,11 @@ class MainActivity : FragmentActivity() {
                 AuthenticatorNavHost(
                     repository = repository,
                     lockSettings = lockSettings,
+                    backupReminder = backupReminder,
                     listState = state,
                     onDeleteAccount = viewModel::delete,
                     onMoveAccount = viewModel::move,
+                    onAdvanceHotp = viewModel::advanceHotp,
                     onCopyCode = clipboard::copyCode,
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),
