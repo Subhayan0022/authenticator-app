@@ -1,19 +1,21 @@
 package io.github.subhayan0022.authenticator.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -25,10 +27,12 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    autoLockSeconds: Int,
+    strictMode: Boolean,
+    timeoutSeconds: Int,
     options: List<Int>,
     keyValiditySeconds: Int,
-    onAutoLockChange: (Int) -> Unit,
+    onStrictModeChange: (Boolean) -> Unit,
+    onTimeoutChange: (Int) -> Unit,
     onExportClick: () -> Unit,
     onImportClick: () -> Unit,
     onBack: () -> Unit,
@@ -47,14 +51,41 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Lock after", style = MaterialTheme.typography.titleMedium)
+            Text("Locking", style = MaterialTheme.typography.titleMedium)
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Strict mode", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Secrets are decrypted only for the instant a code is made, " +
+                            "never held in memory. The trade-off is that the timer runs " +
+                            "from when you authenticated and cannot be extended by using " +
+                            "the app, and it cannot exceed the key's own limit.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Switch(checked = strictMode, onCheckedChange = onStrictModeChange)
+            }
 
             Text(
-                "Codes are hidden and the decryption key becomes unusable once " +
-                    "this much time has passed since you authenticated.",
+                if (strictMode) "Lock after authenticating" else "Lock after no interaction",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+
+            Text(
+                if (strictMode) {
+                    "Counted from your fingerprint, regardless of what you are doing."
+                } else {
+                    "Counted from the last time you touched the app."
+                },
                 style = MaterialTheme.typography.bodySmall,
             )
 
@@ -63,18 +94,33 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .selectable(
-                            selected = seconds == autoLockSeconds,
-                            onClick = { onAutoLockChange(seconds) },
+                            selected = seconds == timeoutSeconds,
+                            onClick = { onTimeoutChange(seconds) },
                         )
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(
-                        selected = seconds == autoLockSeconds,
-                        onClick = { onAutoLockChange(seconds) },
+                        selected = seconds == timeoutSeconds,
+                        onClick = { onTimeoutChange(seconds) },
                     )
                     Text(label(seconds), modifier = Modifier.padding(start = 8.dp))
                 }
+            }
+
+            Text(
+                "The app always locks the moment you leave it, whichever mode is on.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            if (strictMode) {
+                Text(
+                    "Strict mode is capped at ${label(keyValiditySeconds)} because that is how " +
+                        "long this device's encryption key stays usable after one " +
+                        "authentication. That limit is fixed when the key is created.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
 
             Text(
@@ -96,15 +142,6 @@ fun SettingsScreen(
                 Button(onClick = onExportClick) { Text("Export") }
                 OutlinedButton(onClick = onImportClick) { Text("Import") }
             }
-
-            Text(
-                "The longest option is limited to ${label(keyValiditySeconds)} because " +
-                    "that is how long this device's encryption key stays usable after " +
-                    "one authentication. That limit is fixed when the key is created " +
-                    "and cannot be changed without discarding every stored secret.",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 16.dp),
-            )
         }
     }
 }

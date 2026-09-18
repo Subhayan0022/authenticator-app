@@ -73,14 +73,44 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_PROMPT_UNLOCK = "promptUnlock"
     }
 
+    private var authInProgress = false
+
+    override fun onResume() {
+        super.onResume()
+        authInProgress = false
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (!authInProgress) viewModel.onBackgrounded()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus && !authInProgress) viewModel.onBackgrounded()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        viewModel.onInteraction()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.onBackgrounded()
+    }
+
     private fun unlock(onSuccess: () -> Unit) {
+        authInProgress = true
+
         AppUnlock.prompt(
             activity = this,
             onSuccess = {
+                authInProgress = false
                 viewModel.onUnlocked()
                 onSuccess()
             },
-            onError = { /* stay locked */ },
+            onError = { authInProgress = false },
         )
     }
 }

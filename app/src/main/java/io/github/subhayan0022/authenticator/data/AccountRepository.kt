@@ -16,6 +16,23 @@ class AccountRepository(
     private val cipher: SecretCipher = KeystoreSecretCipher,
 ) {
 
+    private val session = mutableMapOf<Long, ByteArray>()
+
+    val isSessionOpen: Boolean
+        get() = session.isNotEmpty()
+
+    suspend fun openSession() {
+        closeSession()
+        dao.allOrdered().forEach { entity ->
+            session[entity.id] = cipher.decrypt(entity.secret)
+        }
+    }
+
+    fun closeSession() {
+        session.values.forEach { it.fill(0) }
+        session.clear()
+    }
+
     fun observeAccounts(): Flow<List<Account>> =
         dao.observeAll().map { entities -> entities.map { it.toAccount() } }
 
@@ -44,7 +61,9 @@ class AccountRepository(
                 counter = counter,
                 sortOrder = dao.allOrdered().size,
             ),
-        )
+        ).also { id ->
+            if (isSessionOpen) session[id] = secret.copyOf()
+        }
     } finally {
         secret.fill(0)
     }
@@ -55,7 +74,9 @@ class AccountRepository(
         timeMillis: Long = System.currentTimeMillis(),
     ): String? {
         val entity = dao.findById(id) ?: return null
-        val secret = cipher.decrypt(entity.secret)
+
+        val fromSession = session[entity.id]
+        val secret = fromSession ?: cipher.decrypt(entity.secret)
 
         return try {
             when (entity.type) {
@@ -68,7 +89,7 @@ class AccountRepository(
                 )
             }
         } finally {
-            secret.fill(0)
+            if (fromSession == null) secret.fill(0)
         }
     }
 
@@ -76,12 +97,14 @@ class AccountRepository(
     suspend fun advanceHotp(id: Long): String? {
         val counter = dao.nextCounter(id) ?: return null
         val entity = dao.findById(id) ?: return null
-        val secret = cipher.decrypt(entity.secret)
+
+        val fromSession = session[entity.id]
+        val secret = fromSession ?: cipher.decrypt(entity.secret)
 
         return try {
             HotpGenerator.generate(secret, counter, entity.digits, entity.algorithm)
         } finally {
-            secret.fill(0)
+            if (fromSession == null) secret.fill(0)
         }
     }
 
@@ -158,7 +181,9 @@ class AccountRepository(
                         counter = account.counter,
                         sortOrder = nextSortOrder++,
                     ),
-                )
+                ).also { newId ->
+                    if (isSessionOpen) session[newId] = secret.copyOf()
+                }
                 imported++
             } finally {
                 secret.fill(0)
@@ -171,6 +196,7 @@ class AccountRepository(
     suspend fun move(id: Long, offset: Int) = dao.move(id, offset)
 
     suspend fun delete(id: Long) {
+        session.remove(id)?.fill(0)
         dao.findById(id)?.let { dao.delete(it) }
     }
 }

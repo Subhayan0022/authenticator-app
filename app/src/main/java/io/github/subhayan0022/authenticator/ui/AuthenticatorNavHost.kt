@@ -123,13 +123,16 @@ fun AuthenticatorNavHost(
         }
 
         composable<SettingsRoute> {
-            val autoLock by lockSettings.autoLockSeconds.collectAsStateWithLifecycle()
+            val strict by lockSettings.strictMode.collectAsStateWithLifecycle()
+            val timeout by lockSettings.idleTimeoutSeconds.collectAsStateWithLifecycle()
 
             SettingsScreen(
-                autoLockSeconds = autoLock,
-                options = lockSettings.options,
-                keyValiditySeconds = lockSettings.options.last(),
-                onAutoLockChange = lockSettings::setAutoLockSeconds,
+                strictMode = strict,
+                timeoutSeconds = timeout,
+                options = lockSettings.optionsFor(strict),
+                keyValiditySeconds = lockSettings.optionsFor(strict = true).last(),
+                onStrictModeChange = lockSettings::setStrictMode,
+                onTimeoutChange = lockSettings::setIdleTimeoutSeconds,
                 onExportClick = { navController.navigate(BackupRoute(importing = false)) },
                 onImportClick = { navController.navigate(BackupRoute(importing = true)) },
                 onBack = { navController.popBackStack() },

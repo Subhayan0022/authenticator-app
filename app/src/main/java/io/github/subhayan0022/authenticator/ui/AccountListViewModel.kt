@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class AccountCode(
@@ -37,8 +38,12 @@ class AccountListViewModel(
     private val lockSettings: LockSettings,
 ) : ViewModel() {
 
-    /** Millis of the last successful authentication, or 0 when locked. */
-    private val unlockedAt = MutableStateFlow(0L)
+    private data class LockState(
+        val unlockedAt: Long = 0L,
+        val lastInteractionAt: Long = 0L,
+    )
+
+    private val lockState = MutableStateFlow(LockState())
 
     /** accountId -> (time step or counter, code) — the code is cached, the secret never is. */
     private val codeCache = mutableMapOf<Long, Pair<Long, String>>()
@@ -52,14 +57,20 @@ class AccountListViewModel(
 
     val uiState: StateFlow<AccountListUiState> =
         combine(
-            unlockedAt,
+            lockState,
             repository.observeAccounts(),
             tick,
-            lockSettings.autoLockSeconds,
-        ) { authenticatedAt, accounts, now, autoLockSeconds ->
-            if (authenticatedAt == 0L) return@combine AccountListUiState.Locked
+            lockSettings.idleTimeoutSeconds,
+        ) { lock, accounts, now, timeoutSeconds ->
+            if (lock.unlockedAt == 0L) return@combine AccountListUiState.Locked
 
-            if (now - authenticatedAt >= autoLockSeconds * 1_000L) {
+            val since = if (lockSettings.strictMode.value) {
+                lock.unlockedAt
+            } else {
+                lock.lastInteractionAt
+            }
+
+            if (now - since >= timeoutSeconds * 1_000L) {
                 relock()
                 return@combine AccountListUiState.Locked
             }
@@ -77,7 +88,27 @@ class AccountListViewModel(
         )
 
     fun onUnlocked() {
-        unlockedAt.value = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        lockState.value = LockState(unlockedAt = now, lastInteractionAt = now)
+
+        if (!lockSettings.strictMode.value) {
+            viewModelScope.launch {
+                try {
+                    repository.openSession()
+                } catch (e: UserNotAuthenticatedException) {
+                    relock()
+                }
+            }
+        }
+    }
+
+    fun onInteraction() {
+        val now = System.currentTimeMillis()
+        lockState.update { if (it.unlockedAt == 0L) it else it.copy(lastInteractionAt = now) }
+    }
+
+    fun onBackgrounded() {
+        if (lockState.value.unlockedAt != 0L) relock()
     }
 
     fun move(id: Long, offset: Int) {
@@ -105,7 +136,8 @@ class AccountListViewModel(
 
     fun relock() {
         codeCache.clear()
-        unlockedAt.value = 0L
+        repository.closeSession()
+        lockState.value = LockState()
     }
 
     private suspend fun codeFor(account: Account, now: Long): AccountCode {
