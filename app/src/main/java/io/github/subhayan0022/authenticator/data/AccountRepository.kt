@@ -130,7 +130,8 @@ class AccountRepository(
 
     suspend fun exportPayload(): BackupPayload = BackupPayload(
         accounts = dao.allOrdered().map { entity ->
-            val secret = cipher.decrypt(entity.secret)
+            val fromSession = session[entity.id]
+            val secret = fromSession ?: cipher.decrypt(entity.secret)
 
             try {
                 BackupAccount(
@@ -146,7 +147,7 @@ class AccountRepository(
                     sortOrder = entity.sortOrder,
                 )
             } finally {
-                secret.fill(0)
+                if (fromSession == null) secret.fill(0)
             }
         },
     )

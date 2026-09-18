@@ -48,6 +48,14 @@ class AccountListViewModel(
     /** accountId -> (time step or counter, code) — the code is cached, the secret never is. */
     private val codeCache = mutableMapOf<Long, Pair<Long, String>>()
 
+    init {
+        viewModelScope.launch {
+            lockSettings.strictMode.collect { strict ->
+                if (strict) relock()
+            }
+        }
+    }
+
     private val tick = flow {
         while (true) {
             emit(System.currentTimeMillis())
