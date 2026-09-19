@@ -1,7 +1,6 @@
 package io.github.subhayan0022.authenticator.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,14 +8,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
@@ -30,18 +36,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.subhayan0022.authenticator.data.OtpType
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,10 +168,32 @@ private fun AccountListContent(
                 Button(onClick = onAddAccountClick) { Text("Add account") }
             }
         } else {
-            var selected by remember { mutableStateOf<AccountCode?>(null) }
             var pendingDelete by remember { mutableStateOf<AccountCode?>(null) }
+            var menuFor by remember { mutableStateOf<Long?>(null) }
+
+            var dragFrom by remember { mutableStateOf<Int?>(null) }
+            var dragTo by remember { mutableStateOf<Int?>(null) }
+            var dragOffset by remember { mutableFloatStateOf(0f) }
+            var rowHeight by remember { mutableFloatStateOf(0f) }
+            var autoScroll by remember { mutableFloatStateOf(0f) }
+
+            val listState = rememberLazyListState()
+            val rowSpacing = with(LocalDensity.current) { 12.dp.toPx() }
+            val autoScrollStep = with(LocalDensity.current) { 8.dp.toPx() }
+
+            LaunchedEffect(autoScroll) {
+                if (autoScroll == 0f) return@LaunchedEffect
+
+                while (true) {
+                    val consumed = listState.scrollBy(autoScroll)
+                    if (consumed == 0f) break
+                    dragOffset += consumed
+                    withFrameNanos { }
+                }
+            }
 
             LazyColumn(
+                state = listState,
                 modifier = modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -212,84 +250,105 @@ private fun AccountListContent(
                     }
                 }
 
-                items(state.codes, key = { it.account.id }) { item ->
+                itemsIndexed(state.codes, key = { _, it -> it.account.id }) { index, item ->
+                    val liveIndex by rememberUpdatedState(index)
+                    val liveLastIndex by rememberUpdatedState(state.codes.lastIndex)
+
+                    val from = dragFrom
+                    val to = dragTo
+
+                    val shift = when {
+                        from == null || to == null -> 0f
+                        index == from -> dragOffset
+                        to > from && index in (from + 1)..to -> -rowHeight
+                        to < from && index in to until from -> rowHeight
+                        else -> 0f
+                    }
+
                     AccountRow(
                         item = item,
+                        dragging = index == from,
+                        menuOpen = menuFor == item.account.id,
+                        onMenuOpen = { menuFor = item.account.id },
+                        onMenuDismiss = { menuFor = null },
                         onCopy = { onCopyCode(item.code) },
-                        onLongPress = { selected = item },
+                        onEdit = {
+                            menuFor = null
+                            onEditAccount(item.account.id)
+                        },
+                        onDelete = {
+                            menuFor = null
+                            pendingDelete = item
+                        },
+                        onAdvanceHotp = {
+                            menuFor = null
+                            onAdvanceHotp(item.account.id)
+                        },
+                        modifier = Modifier
+                            .zIndex(if (index == from) 1f else 0f)
+                            .graphicsLayer { translationY = shift }
+                            .onSizeChanged { rowHeight = it.height.toFloat() + rowSpacing }
+                            .pointerInput(item.account.id) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        dragFrom = liveIndex
+                                        dragTo = liveIndex
+                                        dragOffset = 0f
+                                    },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        dragOffset += amount.y
+                                        if (rowHeight > 0f) {
+                                            val moved = (dragOffset / rowHeight).roundToInt()
+                                            dragTo = (liveIndex + moved)
+                                                .coerceIn(0, liveLastIndex)
+                                        }
+
+                                        val layout = listState.layoutInfo
+                                        val onScreen = layout.visibleItemsInfo
+                                            .firstOrNull { it.key == item.account.id }
+
+                                        autoScroll = if (onScreen == null) {
+                                            0f
+                                        } else {
+                                            val top = onScreen.offset + dragOffset
+                                            val bottom = top + onScreen.size
+                                            val edge = onScreen.size * 0.5f
+
+                                            when {
+                                                top < layout.viewportStartOffset + edge ->
+                                                    -autoScrollStep
+
+                                                bottom > layout.viewportEndOffset - edge ->
+                                                    autoScrollStep
+
+                                                else -> 0f
+                                            }
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        val startIndex = dragFrom
+                                        val endIndex = dragTo
+                                        if (startIndex != null && endIndex != null &&
+                                            startIndex != endIndex
+                                        ) {
+                                            onMove(item.account.id, endIndex - startIndex)
+                                        }
+                                        dragFrom = null
+                                        dragTo = null
+                                        dragOffset = 0f
+                                        autoScroll = 0f
+                                    },
+                                    onDragCancel = {
+                                        dragFrom = null
+                                        dragTo = null
+                                        dragOffset = 0f
+                                        autoScroll = 0f
+                                    },
+                                )
+                            },
                     )
                 }
-            }
-
-            selected?.let { target ->
-                val index = state.codes.indexOfFirst { it.account.id == target.account.id }
-
-                OwnOverlay()
-
-                AlertDialog(
-                    onDismissRequest = { selected = null },
-                    title = { Text(target.account.issuer) },
-                    text = {
-                        Column {
-                            TextButton(
-                                onClick = {
-                                    selected = null
-                                    onEditAccount(target.account.id)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Edit")
-                            }
-
-                            if (target.account.type == OtpType.HOTP) {
-                                TextButton(
-                                    onClick = {
-                                        selected = null
-                                        onAdvanceHotp(target.account.id)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text("Next code")
-                                }
-                            }
-
-                            TextButton(
-                                onClick = {
-                                    selected = null
-                                    onMove(target.account.id, -1)
-                                },
-                                enabled = index > 0,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Move up")
-                            }
-
-                            TextButton(
-                                onClick = {
-                                    selected = null
-                                    onMove(target.account.id, 1)
-                                },
-                                enabled = index in 0 until state.codes.lastIndex,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Move down")
-                            }
-
-                            TextButton(
-                                onClick = {
-                                    pendingDelete = target
-                                    selected = null
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Delete")
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { selected = null }) { Text("Cancel") }
-                    },
-                )
             }
 
             pendingDelete?.let { target ->
@@ -353,45 +412,69 @@ private fun BackupReminderCard(onBackupNow: () -> Unit, onDismiss: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AccountRow(
     item: AccountCode,
+    dragging: Boolean,
+    menuOpen: Boolean,
+    onMenuOpen: () -> Unit,
+    onMenuDismiss: () -> Unit,
     onCopy: () -> Unit,
-    onLongPress: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onAdvanceHotp: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) { contentDescription = spoken(item) }
-            .combinedClickable(
-                onClick = onCopy,
-                onClickLabel = "Copy code",
-                onLongClick = onLongPress,
-                onLongClickLabel = "Account options",
-            ),
+            .clickable(onClickLabel = "Copy code", onClick = onCopy),
     ) {
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(item.account.issuer, style = MaterialTheme.typography.titleMedium)
-            Text(item.account.label, style = MaterialTheme.typography.bodySmall)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(item.code.grouped(), style = MaterialTheme.typography.headlineMedium)
-                item.secondsRemaining?.let { Text("${it}s") }
+                Text(item.account.issuer, style = MaterialTheme.typography.titleMedium)
+                Text(item.account.label, style = MaterialTheme.typography.bodySmall)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(item.code.grouped(), style = MaterialTheme.typography.headlineMedium)
+                    item.secondsRemaining?.let { Text("${it}s") }
+                }
+
+                item.secondsRemaining?.let { remaining ->
+                    LinearProgressIndicator(
+                        progress = { remaining.toFloat() / item.account.periodSeconds },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
 
-            item.secondsRemaining?.let { remaining ->
-                LinearProgressIndicator(
-                    progress = { remaining.toFloat() / item.account.periodSeconds },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            Box {
+                IconButton(onClick = onMenuOpen) {
+                    Text("\u22EE", style = MaterialTheme.typography.titleLarge)
+                }
+
+                DropdownMenu(expanded = menuOpen, onDismissRequest = onMenuDismiss) {
+                    OwnOverlay()
+
+                    DropdownMenuItem(text = { Text("Edit") }, onClick = onEdit)
+
+                    if (item.account.type == OtpType.HOTP) {
+                        DropdownMenuItem(text = { Text("Next code") }, onClick = onAdvanceHotp)
+                    }
+
+                    DropdownMenuItem(text = { Text("Delete") }, onClick = onDelete)
+                }
             }
         }
     }
