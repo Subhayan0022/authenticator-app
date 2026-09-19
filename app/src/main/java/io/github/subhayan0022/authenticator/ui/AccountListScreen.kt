@@ -37,6 +37,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.subhayan0022.authenticator.data.OtpType
@@ -321,7 +323,14 @@ private fun AccountListContent(
 
 @Composable
 private fun BackupReminderCard(onBackupNow: () -> Unit, onDismiss: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "No backup yet. These secrets exist only on this " +
+                    "device and would be lost with it."
+            },
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -350,7 +359,13 @@ private fun AccountRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onCopy, onLongClick = onLongPress),
+            .semantics(mergeDescendants = true) { contentDescription = spoken(item) }
+            .combinedClickable(
+                onClick = onCopy,
+                onClickLabel = "Copy code",
+                onLongClick = onLongPress,
+                onLongClickLabel = "Account options",
+            ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -387,6 +402,16 @@ private fun Centered(modifier: Modifier, content: @Composable () -> Unit) {
         ) {
             content()
         }
+    }
+}
+
+private fun spoken(item: AccountCode): String {
+    val digits = item.code.filter(Char::isDigit).toCharArray().joinToString(" ")
+    val account = item.account.label.ifBlank { "no account name" }
+
+    return when (val remaining = item.secondsRemaining) {
+        null -> "${item.account.issuer}, $account, code $digits, counter based"
+        else -> "${item.account.issuer}, $account, code $digits, expires in $remaining seconds"
     }
 }
 
