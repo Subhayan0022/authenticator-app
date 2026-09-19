@@ -224,6 +224,8 @@ private fun AccountListContent(
             selected?.let { target ->
                 val index = state.codes.indexOfFirst { it.account.id == target.account.id }
 
+                OwnOverlay()
+
                 AlertDialog(
                     onDismissRequest = { selected = null },
                     title = { Text(target.account.issuer) },
@@ -291,6 +293,8 @@ private fun AccountListContent(
             }
 
             pendingDelete?.let { target ->
+                OwnOverlay()
+
                 AlertDialog(
                     onDismissRequest = { pendingDelete = null },
                     title = { Text("Delete ${target.account.issuer}?") },

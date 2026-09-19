@@ -17,6 +17,7 @@ import io.github.subhayan0022.authenticator.data.BackupReminder
 import io.github.subhayan0022.authenticator.data.LockSettings
 import io.github.subhayan0022.authenticator.crypto.KeystoreSecretCipher
 import io.github.subhayan0022.authenticator.ui.AuthenticatorNavHost
+import io.github.subhayan0022.authenticator.ui.OverlayGuard
 import io.github.subhayan0022.authenticator.ui.SecureClipboard
 import io.github.subhayan0022.authenticator.ui.AccountListViewModel
 import io.github.subhayan0022.authenticator.ui.theme.AuthenticatorTheme
@@ -89,7 +90,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (!hasFocus && !authInProgress) viewModel.onBackgrounded()
+        if (!hasFocus && !authInProgress && !OverlayGuard.isShowing) {
+            viewModel.onBackgrounded()
+        }
     }
 
     override fun onUserInteraction() {
