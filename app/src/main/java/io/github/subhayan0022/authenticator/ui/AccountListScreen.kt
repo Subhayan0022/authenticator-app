@@ -74,6 +74,9 @@ fun AccountListScreen(
     onSettingsClick: () -> Unit,
     onQueryChange: (String) -> Unit,
     onGroupSelected: (String?) -> Unit,
+    onCreateGroup: (String) -> Unit,
+    onRenameGroup: (String, String) -> Unit,
+    onDeleteGroup: (String) -> Unit,
     showBackupReminder: Boolean,
     onBackupNow: () -> Unit,
     onDismissReminder: () -> Unit,
@@ -120,6 +123,9 @@ fun AccountListScreen(
             onCopyCode = copyAndNotify,
             onQueryChange = onQueryChange,
             onGroupSelected = onGroupSelected,
+            onCreateGroup = onCreateGroup,
+            onRenameGroup = onRenameGroup,
+            onDeleteGroup = onDeleteGroup,
             showBackupReminder = showBackupReminder,
             onBackupNow = onBackupNow,
             onDismissReminder = onDismissReminder,
@@ -140,6 +146,9 @@ private fun AccountListContent(
     onCopyCode: (String) -> Unit,
     onQueryChange: (String) -> Unit,
     onGroupSelected: (String?) -> Unit,
+    onCreateGroup: (String) -> Unit,
+    onRenameGroup: (String, String) -> Unit,
+    onDeleteGroup: (String) -> Unit,
     showBackupReminder: Boolean,
     onBackupNow: () -> Unit,
     onDismissReminder: () -> Unit,
@@ -170,6 +179,7 @@ private fun AccountListContent(
         } else {
             var pendingDelete by remember { mutableStateOf<AccountCode?>(null) }
             var menuFor by remember { mutableStateOf<Long?>(null) }
+            var groupManagerOpen by remember { mutableStateOf(false) }
 
             var dragFrom by remember { mutableStateOf<Int?>(null) }
             var dragTo by remember { mutableStateOf<Int?>(null) }
@@ -207,26 +217,32 @@ private fun AccountListContent(
                     )
                 }
 
-                if (state.groups.isNotEmpty()) {
-                    item(key = "groups") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                item(key = "groups") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (state.groups.isNotEmpty()) {
                             FilterChip(
                                 selected = state.selectedGroup == null,
                                 onClick = { onGroupSelected(null) },
                                 label = { Text("All") },
                             )
-                            state.groups.forEach { group ->
-                                FilterChip(
-                                    selected = state.selectedGroup == group,
-                                    onClick = { onGroupSelected(group) },
-                                    label = { Text(group) },
-                                )
-                            }
+                        }
+
+                        state.groups.forEach { group ->
+                            FilterChip(
+                                selected = state.selectedGroup == group,
+                                onClick = { onGroupSelected(group) },
+                                label = { Text(group) },
+                            )
+                        }
+
+                        TextButton(onClick = { groupManagerOpen = true }) {
+                            Text("Groups")
                         }
                     }
                 }
@@ -349,6 +365,16 @@ private fun AccountListContent(
                             },
                     )
                 }
+            }
+
+            if (groupManagerOpen) {
+                GroupManagerDialog(
+                    groups = state.groups,
+                    onDismiss = { groupManagerOpen = false },
+                    onCreate = onCreateGroup,
+                    onRename = onRenameGroup,
+                    onDelete = onDeleteGroup,
+                )
             }
 
             pendingDelete?.let { target ->

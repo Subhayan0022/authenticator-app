@@ -9,10 +9,12 @@ import io.github.subhayan0022.authenticator.otp.Base32
 import io.github.subhayan0022.authenticator.otp.HotpGenerator
 import io.github.subhayan0022.authenticator.otp.TotpGenerator
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class AccountRepository(
     private val dao: AccountDao,
+    private val groupDao: GroupDao,
     private val cipher: SecretCipher = KeystoreSecretCipher,
 ) {
 
@@ -32,6 +34,20 @@ class AccountRepository(
         session.values.forEach { it.fill(0) }
         session.clear()
     }
+
+    fun observeGroups(): Flow<List<String>> = groupDao.observeNames()
+
+    suspend fun createGroup(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty()) groupDao.insert(GroupEntity(trimmed))
+    }
+
+    suspend fun renameGroup(old: String, new: String) {
+        val trimmed = new.trim()
+        if (trimmed.isNotEmpty() && trimmed != old) groupDao.rename(old, trimmed)
+    }
+
+    suspend fun deleteGroup(name: String) = groupDao.remove(name)
 
     fun observeAccounts(): Flow<List<Account>> =
         dao.observeAll().map { entities -> entities.map { it.toAccount() } }
@@ -129,6 +145,7 @@ class AccountRepository(
     suspend fun account(id: Long): Account? = dao.findById(id)?.toAccount()
 
     suspend fun exportPayload(): BackupPayload = BackupPayload(
+        groups = groupDao.observeNames().first(),
         accounts = dao.allOrdered().map { entity ->
             val fromSession = session[entity.id]
             val secret = fromSession ?: cipher.decrypt(entity.secret)
@@ -153,6 +170,11 @@ class AccountRepository(
     )
 
     suspend fun importPayload(payload: BackupPayload): Int {
+        payload.groups.forEach { groupDao.insert(GroupEntity(it)) }
+        payload.accounts.mapNotNull { it.group }.distinct().forEach {
+            groupDao.insert(GroupEntity(it))
+        }
+
         var imported = 0
         var nextSortOrder = dao.allOrdered().size
 

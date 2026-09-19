@@ -78,11 +78,12 @@ class AccountListViewModel(
     val uiState: StateFlow<AccountListUiState> =
         combine(
             lockState,
-            repository.observeAccounts(),
+            combine(repository.observeAccounts(), repository.observeGroups(), ::Pair),
             tick,
             lockSettings.idleTimeoutSeconds,
             filter,
-        ) { lock, accounts, now, timeoutSeconds, activeFilter ->
+        ) { lock, data, now, timeoutSeconds, activeFilter ->
+            val (accounts, storedGroups) = data
             if (lock.unlockedAt == 0L) return@combine AccountListUiState.Locked
 
             val since = if (lockSettings.strictMode.value) {
@@ -97,7 +98,9 @@ class AccountListViewModel(
             }
 
             try {
-                val groups = accounts.mapNotNull { it.groupName }.distinct().sorted()
+                val groups = (storedGroups + accounts.mapNotNull { it.groupName })
+                    .distinct()
+                    .sorted()
                 val group = activeFilter.group?.takeIf { it in groups }
 
                 val visible = accounts.filter { account ->
@@ -141,6 +144,24 @@ class AccountListViewModel(
     fun onQueryChange(query: String) {
         onInteraction()
         filter.update { it.copy(query = query) }
+    }
+
+    fun createGroup(name: String) {
+        onInteraction()
+        viewModelScope.launch { repository.createGroup(name) }
+    }
+
+    fun renameGroup(old: String, new: String) {
+        onInteraction()
+        viewModelScope.launch { repository.renameGroup(old, new) }
+    }
+
+    fun deleteGroup(name: String) {
+        onInteraction()
+        viewModelScope.launch {
+            repository.deleteGroup(name)
+            filter.update { if (it.group == name) it.copy(group = null) else it }
+        }
     }
 
     fun onGroupSelected(group: String?) {

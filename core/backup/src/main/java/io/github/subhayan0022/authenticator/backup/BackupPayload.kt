@@ -20,6 +20,7 @@ data class BackupAccount(
 data class BackupPayload(
     val version: Int = CURRENT_VERSION,
     val accounts: List<BackupAccount>,
+    val groups: List<String> = emptyList(),
 ) {
     companion object {
         const val CURRENT_VERSION = 1

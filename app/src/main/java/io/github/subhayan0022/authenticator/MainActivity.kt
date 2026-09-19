@@ -25,7 +25,10 @@ import io.github.subhayan0022.authenticator.ui.theme.AuthenticatorTheme
 class MainActivity : FragmentActivity() {
 
     private val repository by lazy {
-        AccountRepository(DatabaseProvider.get(applicationContext).accountDao())
+        AccountRepository(
+            DatabaseProvider.get(applicationContext).accountDao(),
+            DatabaseProvider.get(applicationContext).groupDao(),
+        )
     }
 
     private val clipboard by lazy { SecureClipboard(this) }
@@ -61,6 +64,9 @@ class MainActivity : FragmentActivity() {
                     onCopyCode = clipboard::copyCode,
                     onQueryChange = viewModel::onQueryChange,
                     onGroupSelected = viewModel::onGroupSelected,
+                    onCreateGroup = viewModel::createGroup,
+                    onRenameGroup = viewModel::renameGroup,
+                    onDeleteGroup = viewModel::deleteGroup,
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),
                 )
