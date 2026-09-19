@@ -30,7 +30,12 @@ data class AccountCode(
 sealed interface AccountListUiState {
     data object Loading : AccountListUiState
     data object Locked : AccountListUiState
-    data class Ready(val codes: List<AccountCode>) : AccountListUiState
+    data class Ready(
+        val codes: List<AccountCode>,
+        val groups: List<String>,
+        val selectedGroup: String?,
+        val query: String,
+    ) : AccountListUiState
 }
 
 class AccountListViewModel(
@@ -44,6 +49,13 @@ class AccountListViewModel(
     )
 
     private val lockState = MutableStateFlow(LockState())
+
+    data class ListFilter(
+        val query: String = "",
+        val group: String? = null,
+    )
+
+    private val filter = MutableStateFlow(ListFilter())
 
     /** accountId -> (time step or counter, code) — the code is cached, the secret never is. */
     private val codeCache = mutableMapOf<Long, Pair<Long, String>>()
@@ -69,7 +81,8 @@ class AccountListViewModel(
             repository.observeAccounts(),
             tick,
             lockSettings.idleTimeoutSeconds,
-        ) { lock, accounts, now, timeoutSeconds ->
+            filter,
+        ) { lock, accounts, now, timeoutSeconds, activeFilter ->
             if (lock.unlockedAt == 0L) return@combine AccountListUiState.Locked
 
             val since = if (lockSettings.strictMode.value) {
@@ -84,7 +97,22 @@ class AccountListViewModel(
             }
 
             try {
-                AccountListUiState.Ready(accounts.map { codeFor(it, now) })
+                val groups = accounts.mapNotNull { it.groupName }.distinct().sorted()
+                val group = activeFilter.group?.takeIf { it in groups }
+
+                val visible = accounts.filter { account ->
+                    (group == null || account.groupName == group) &&
+                        (activeFilter.query.isBlank() ||
+                            account.issuer.contains(activeFilter.query, ignoreCase = true) ||
+                            account.label.contains(activeFilter.query, ignoreCase = true))
+                }
+
+                AccountListUiState.Ready(
+                    codes = visible.map { codeFor(it, now) },
+                    groups = groups,
+                    selectedGroup = group,
+                    query = activeFilter.query,
+                )
             } catch (e: UserNotAuthenticatedException) {
                 relock()
                 AccountListUiState.Locked
@@ -108,6 +136,16 @@ class AccountListViewModel(
                 }
             }
         }
+    }
+
+    fun onQueryChange(query: String) {
+        onInteraction()
+        filter.update { it.copy(query = query) }
+    }
+
+    fun onGroupSelected(group: String?) {
+        onInteraction()
+        filter.update { it.copy(group = group) }
     }
 
     fun onInteraction() {

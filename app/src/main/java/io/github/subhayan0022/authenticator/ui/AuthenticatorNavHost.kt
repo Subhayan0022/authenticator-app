@@ -46,6 +46,8 @@ fun AuthenticatorNavHost(
     onMoveAccount: (Long, Int) -> Unit,
     onAdvanceHotp: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
+    onQueryChange: (String) -> Unit,
+    onGroupSelected: (String?) -> Unit,
     onUnlockRequest: (onSuccess: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -70,6 +72,8 @@ fun AuthenticatorNavHost(
                 onMove = onMoveAccount,
                 onAdvanceHotp = onAdvanceHotp,
                 onCopyCode = onCopyCode,
+                onQueryChange = onQueryChange,
+                onGroupSelected = onGroupSelected,
                 onSettingsClick = { navController.navigate(SettingsRoute) },
                 showBackupReminder = shouldRemind,
                 onBackupNow = { navController.navigate(BackupRoute(importing = false)) },

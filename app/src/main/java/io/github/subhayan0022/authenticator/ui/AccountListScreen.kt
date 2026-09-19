@@ -11,9 +11,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -50,6 +54,8 @@ fun AccountListScreen(
     onAdvanceHotp: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
     onSettingsClick: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onGroupSelected: (String?) -> Unit,
     showBackupReminder: Boolean,
     onBackupNow: () -> Unit,
     onDismissReminder: () -> Unit,
@@ -94,6 +100,8 @@ fun AccountListScreen(
             onMove = onMove,
             onAdvanceHotp = onAdvanceHotp,
             onCopyCode = copyAndNotify,
+            onQueryChange = onQueryChange,
+            onGroupSelected = onGroupSelected,
             showBackupReminder = showBackupReminder,
             onBackupNow = onBackupNow,
             onDismissReminder = onDismissReminder,
@@ -112,6 +120,8 @@ private fun AccountListContent(
     onMove: (Long, Int) -> Unit,
     onAdvanceHotp: (Long) -> Unit,
     onCopyCode: (String) -> Unit,
+    onQueryChange: (String) -> Unit,
+    onGroupSelected: (String?) -> Unit,
     showBackupReminder: Boolean,
     onBackupNow: () -> Unit,
     onDismissReminder: () -> Unit,
@@ -132,7 +142,9 @@ private fun AccountListContent(
             Button(onClick = onUnlockClick) { Text("Unlock") }
         }
 
-        is AccountListUiState.Ready -> if (state.codes.isEmpty()) {
+        is AccountListUiState.Ready -> if (
+            state.codes.isEmpty() && state.query.isBlank() && state.selectedGroup == null
+        ) {
             Centered(modifier) {
                 Text("No accounts yet", style = MaterialTheme.typography.titleLarge)
                 Button(onClick = onAddAccountClick) { Text("Add account") }
@@ -145,6 +157,50 @@ private fun AccountListContent(
                 modifier = modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                item(key = "search") {
+                    OutlinedTextField(
+                        value = state.query,
+                        onValueChange = onQueryChange,
+                        label = { Text("Search") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                if (state.groups.isNotEmpty()) {
+                    item(key = "groups") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            FilterChip(
+                                selected = state.selectedGroup == null,
+                                onClick = { onGroupSelected(null) },
+                                label = { Text("All") },
+                            )
+                            state.groups.forEach { group ->
+                                FilterChip(
+                                    selected = state.selectedGroup == group,
+                                    onClick = { onGroupSelected(group) },
+                                    label = { Text(group) },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (state.codes.isEmpty()) {
+                    item(key = "no-matches") {
+                        Text(
+                            "No accounts match that search.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(vertical = 24.dp),
+                        )
+                    }
+                }
+
                 if (showBackupReminder) {
                     item(key = "backup-reminder") {
                         BackupReminderCard(

@@ -58,6 +58,8 @@ class MainActivity : FragmentActivity() {
                     onMoveAccount = viewModel::move,
                     onAdvanceHotp = viewModel::advanceHotp,
                     onCopyCode = clipboard::copyCode,
+                    onQueryChange = viewModel::onQueryChange,
+                    onGroupSelected = viewModel::onGroupSelected,
                     onUnlockRequest = ::unlock,
                     modifier = Modifier.fillMaxSize(),
                 )
