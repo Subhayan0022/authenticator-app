@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+private const val RESERVED_GROUP = "All"
+
+fun isReservedGroup(name: String): Boolean = name.trim().equals(RESERVED_GROUP, ignoreCase = true)
+
 class AccountRepository(
     private val dao: AccountDao,
     private val groupDao: GroupDao,
@@ -35,16 +39,21 @@ class AccountRepository(
         session.clear()
     }
 
-    fun observeGroups(): Flow<List<String>> = groupDao.observeNames()
+    fun observeGroups(): Flow<List<String>> =
+        groupDao.observeNames().map { names -> names.filterNot { isReservedGroup(it) } }
 
     suspend fun createGroup(name: String) {
         val trimmed = name.trim()
-        if (trimmed.isNotEmpty()) groupDao.insert(GroupEntity(trimmed))
+        if (trimmed.isNotEmpty() && !isReservedGroup(trimmed)) {
+            groupDao.insert(GroupEntity(trimmed))
+        }
     }
 
     suspend fun renameGroup(old: String, new: String) {
         val trimmed = new.trim()
-        if (trimmed.isNotEmpty() && trimmed != old) groupDao.rename(old, trimmed)
+        if (trimmed.isNotEmpty() && trimmed != old && !isReservedGroup(trimmed)) {
+            groupDao.rename(old, trimmed)
+        }
     }
 
     suspend fun deleteGroup(name: String) = groupDao.remove(name)
@@ -170,10 +179,13 @@ class AccountRepository(
     )
 
     suspend fun importPayload(payload: BackupPayload): Int {
-        payload.groups.forEach { groupDao.insert(GroupEntity(it)) }
-        payload.accounts.mapNotNull { it.group }.distinct().forEach {
+        payload.groups.filterNot { isReservedGroup(it) }.forEach {
             groupDao.insert(GroupEntity(it))
         }
+        payload.accounts.mapNotNull { it.group }
+            .distinct()
+            .filterNot { isReservedGroup(it) }
+            .forEach { groupDao.insert(GroupEntity(it)) }
 
         var imported = 0
         var nextSortOrder = dao.allOrdered().size

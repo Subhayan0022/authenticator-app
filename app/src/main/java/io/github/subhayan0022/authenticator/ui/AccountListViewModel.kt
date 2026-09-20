@@ -10,6 +10,7 @@ import io.github.subhayan0022.authenticator.data.Account
 import io.github.subhayan0022.authenticator.data.AccountRepository
 import io.github.subhayan0022.authenticator.data.LockSettings
 import io.github.subhayan0022.authenticator.data.OtpType
+import io.github.subhayan0022.authenticator.data.isReservedGroup
 import io.github.subhayan0022.authenticator.otp.TotpGenerator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,6 +100,7 @@ class AccountListViewModel(
 
             try {
                 val groups = (storedGroups + accounts.mapNotNull { it.groupName })
+                    .filterNot { isReservedGroup(it) }
                     .distinct()
                     .sorted()
                 val group = activeFilter.group?.takeIf { it in groups }

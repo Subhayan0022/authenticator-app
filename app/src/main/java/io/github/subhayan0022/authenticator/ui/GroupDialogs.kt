@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.subhayan0022.authenticator.data.isReservedGroup
 
 @Composable
 fun GroupManagerDialog(
@@ -103,11 +104,19 @@ fun GroupManagerDialog(
                     }
                 }
 
+                val reserved = isReservedGroup(newName)
+
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     label = { Text("New group") },
                     singleLine = true,
+                    isError = reserved,
+                    supportingText = if (reserved) {
+                        { Text("\"All\" is the built-in filter and cannot be used.") }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
 
@@ -116,7 +125,7 @@ fun GroupManagerDialog(
                         onCreate(newName)
                         newName = ""
                     },
-                    enabled = newName.isNotBlank(),
+                    enabled = newName.isNotBlank() && !reserved,
                 ) {
                     Text("Create")
                 }
@@ -137,6 +146,7 @@ private fun RenameDialog(
     OwnOverlay()
 
     var name by remember { mutableStateOf(original) }
+    val reserved = isReservedGroup(name)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -147,12 +157,19 @@ private fun RenameDialog(
                 onValueChange = { name = it },
                 label = { Text("Group name") },
                 singleLine = true,
-                supportingText = { Text("Using an existing name merges the two groups.") },
+                isError = reserved,
+                supportingText = {
+                    if (reserved) {
+                        Text("\"All\" is the built-in filter and cannot be used.")
+                    } else {
+                        Text("Using an existing name merges the two groups.")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank() && !reserved) {
                 Text("Rename")
             }
         },
