@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,12 +24,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
@@ -251,7 +252,12 @@ private fun ReadyContent(
                 SearchField(
                     query = state.query,
                     onQueryChange = onQueryChange,
-                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 6.dp),
+                    modifier = Modifier.padding(
+                        start = ScreenPadding,
+                        end = ScreenPadding,
+                        top = 10.dp,
+                        bottom = 18.dp,
+                    ),
                 )
             }
 
@@ -260,7 +266,7 @@ private fun ReadyContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = ScreenPadding, vertical = 8.dp),
+                        .padding(start = ScreenPadding, end = ScreenPadding, bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -294,8 +300,7 @@ private fun ReadyContent(
                         modifier = Modifier.padding(
                             start = ScreenPadding,
                             end = ScreenPadding,
-                            top = 2.dp,
-                            bottom = 16.dp,
+                            bottom = 22.dp,
                         ),
                     )
                 }
@@ -507,14 +512,12 @@ private fun SearchField(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            Modifier
-                .size(13.dp)
-                .clip(RoundedCornerShape(percent = 50))
-                .border(1.5.dp, colors.onSurfaceVariant, RoundedCornerShape(percent = 50)),
-        )
+        Box(Modifier.size(13.dp).border(1.5.dp, colors.onSurfaceVariant, CircleShape))
 
-        Box(Modifier.weight(1f)) {
+        Box(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            contentAlignment = Alignment.CenterStart,
+        ) {
             if (query.isEmpty()) {
                 Text(
                     "Search",
@@ -527,11 +530,12 @@ private fun SearchField(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = LocalTextStyle.current.merge(
-                    MaterialTheme.typography.bodyLarge,
-                ).copy(color = colors.onBackground),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onBackground),
                 cursorBrush = SolidColor(colors.onBackground),
-                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { inner ->
+                    Box(contentAlignment = Alignment.CenterStart) { inner() }
+                },
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(),
             )
         }
     }
