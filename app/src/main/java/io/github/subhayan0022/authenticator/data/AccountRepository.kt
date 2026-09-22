@@ -73,6 +73,7 @@ class AccountRepository(
         periodSeconds: Int = TotpGenerator.DEFAULT_PERIOD_SECONDS,
         counter: Long = 0,
     ): Long = try {
+        groupName?.let { createGroup(it) }
         dao.insert(
             AccountEntity(
                 issuer = issuer,
@@ -141,6 +142,7 @@ class AccountRepository(
         sortOrder: Int,
     ) {
         val entity = dao.findById(id) ?: return
+        groupName?.let { createGroup(it) }
         dao.update(
             entity.copy(
                 issuer = issuer,

@@ -44,8 +44,8 @@ fun InfoSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(start = 24.dp, end = 24.dp, bottom = 34.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
                 title.uppercase(),
@@ -56,7 +56,7 @@ fun InfoSheet(
             sections.forEach { section ->
                 Column {
                     Text(section.heading, style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(5.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         section.body,
                         style = MaterialTheme.typography.bodyMedium,

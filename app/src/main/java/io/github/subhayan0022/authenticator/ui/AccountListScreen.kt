@@ -70,14 +70,15 @@ import io.github.subhayan0022.authenticator.ui.theme.TimerStyle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
-private val ScreenPadding = 20.dp
-private val ListCorner = 14.dp
+private val ScreenPadding = 22.dp
+private val ListCorner = 16.dp
 
 @Composable
 fun AccountListScreen(
     state: AccountListUiState,
     onUnlockClick: () -> Unit,
-    onAddAccountClick: () -> Unit,
+    onScanAccount: () -> Unit,
+    onEnterManually: () -> Unit,
     onDelete: (Long) -> Unit,
     onEditAccount: (Long) -> Unit,
     onMove: (Long, Int) -> Unit,
@@ -131,7 +132,8 @@ fun AccountListScreen(
 
                     is AccountListUiState.Ready -> ReadyContent(
                         state = state,
-                        onAddAccountClick = onAddAccountClick,
+                        onScanAccount = onScanAccount,
+                        onEnterManually = onEnterManually,
                         onDelete = onDelete,
                         onEditAccount = onEditAccount,
                         onMove = onMove,
@@ -162,7 +164,7 @@ private fun ScreenHeader(onSettingsClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = ScreenPadding, end = 8.dp, top = 14.dp, bottom = 10.dp),
+            .padding(start = ScreenPadding, end = 8.dp, top = 16.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -182,7 +184,8 @@ private fun ScreenHeader(onSettingsClick: () -> Unit) {
 @Composable
 private fun ReadyContent(
     state: AccountListUiState.Ready,
-    onAddAccountClick: () -> Unit,
+    onScanAccount: () -> Unit,
+    onEnterManually: () -> Unit,
     onDelete: (Long) -> Unit,
     onEditAccount: (Long) -> Unit,
     onMove: (Long, Int) -> Unit,
@@ -202,6 +205,7 @@ private fun ReadyContent(
     var pendingDelete by remember { mutableStateOf<AccountCode?>(null) }
     var sheetFor by remember { mutableStateOf<AccountCode?>(null) }
     var groupManagerOpen by remember { mutableStateOf(false) }
+    var addSheetOpen by remember { mutableStateOf(false) }
 
     var dragFrom by remember { mutableStateOf<Int?>(null) }
     var dragTo by remember { mutableStateOf<Int?>(null) }
@@ -237,8 +241,23 @@ private fun ReadyContent(
                 color = colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            PillButton(text = "Add account", onClick = onAddAccountClick)
+            PillButton(text = "Add account", onClick = { addSheetOpen = true })
         }
+
+        if (addSheetOpen) {
+            AddAccountSheet(
+                onScan = {
+                    addSheetOpen = false
+                    onScanAccount()
+                },
+                onManual = {
+                    addSheetOpen = false
+                    onEnterManually()
+                },
+                onDismiss = { addSheetOpen = false },
+            )
+        }
+
         return
     }
 
@@ -255,8 +274,8 @@ private fun ReadyContent(
                     modifier = Modifier.padding(
                         start = ScreenPadding,
                         end = ScreenPadding,
-                        top = 10.dp,
-                        bottom = 18.dp,
+                        top = 12.dp,
+                        bottom = 20.dp,
                     ),
                 )
             }
@@ -266,7 +285,7 @@ private fun ReadyContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(start = ScreenPadding, end = ScreenPadding, bottom = 20.dp),
+                        .padding(start = ScreenPadding, end = ScreenPadding, bottom = 22.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -416,7 +435,7 @@ private fun ReadyContent(
         }
 
         AddAccountButton(
-            onClick = onAddAccountClick,
+            onClick = { addSheetOpen = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
@@ -451,6 +470,20 @@ private fun ReadyContent(
                 },
             )
         }
+    }
+
+    if (addSheetOpen) {
+        AddAccountSheet(
+            onScan = {
+                addSheetOpen = false
+                onScanAccount()
+            },
+            onManual = {
+                addSheetOpen = false
+                onEnterManually()
+            },
+            onDismiss = { addSheetOpen = false },
+        )
     }
 
     if (groupManagerOpen) {
@@ -505,14 +538,14 @@ private fun SearchField(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(44.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .height(50.dp)
+            .clip(RoundedCornerShape(13.dp))
             .background(colors.surfaceVariant)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(13.dp).border(1.5.dp, colors.onSurfaceVariant, CircleShape))
+        Box(Modifier.size(14.dp).border(1.5.dp, colors.onSurfaceVariant, CircleShape))
 
         Box(
             modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -542,31 +575,6 @@ private fun SearchField(
 }
 
 @Composable
-private fun Pill(text: String, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(percent = 50))
-            .then(
-                if (selected) {
-                    Modifier.background(colors.primary)
-                } else {
-                    Modifier.border(1.dp, colors.outline, RoundedCornerShape(percent = 50))
-                },
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 15.dp, vertical = 7.dp),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) colors.onPrimary else colors.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
 private fun PillButton(text: String, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
 
@@ -587,7 +595,7 @@ private fun AddAccountButton(onClick: () -> Unit, modifier: Modifier = Modifier)
 
     Row(
         modifier = modifier
-            .height(48.dp)
+            .height(54.dp)
             .clip(RoundedCornerShape(percent = 50))
             .background(colors.primary)
             .clickable(onClick = onClick)
@@ -617,7 +625,7 @@ private fun BackupReminderCard(
                 contentDescription = "No backup yet. These secrets exist only on this " +
                     "device and would be lost with it."
             }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("No backup yet", style = MaterialTheme.typography.titleSmall)
@@ -664,8 +672,8 @@ private fun AccountRow(
         }
 
         Column(
-            Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
+            Modifier.fillMaxWidth().padding(17.dp),
+            verticalArrangement = Arrangement.spacedBy(15.dp),
         ) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -674,8 +682,8 @@ private fun AccountRow(
             ) {
                 Box(
                     Modifier
-                        .size(30.dp)
-                        .clip(RoundedCornerShape(9.dp))
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(colors.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -688,7 +696,7 @@ private fun AccountRow(
 
                 Column(
                     Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
                         item.account.issuer.uppercase(),
@@ -717,8 +725,8 @@ private fun AccountRow(
                 ) {
                     Box(
                         Modifier
-                            .size(30.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
                             .clickable(onClickLabel = "Account options", onClick = onMenu),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -824,14 +832,14 @@ private fun SheetAction(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 13.dp),
+            .padding(horizontal = 12.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(30.dp)
-                .clip(RoundedCornerShape(9.dp))
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(colors.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
@@ -840,12 +848,57 @@ private fun SheetAction(
 
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(3.dp))
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddAccountSheet(
+    onScan: () -> Unit,
+    onManual: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    OwnOverlay()
+
+    val colors = MaterialTheme.colorScheme
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colors.surfaceContainerHigh,
+        contentColor = colors.onSurface,
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp)) {
+            Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                Text("ADD ACCOUNT", style = IssuerLabelStyle, color = colors.onSurfaceVariant)
+            }
+
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.outlineVariant))
+            Spacer(Modifier.height(8.dp))
+
+            SheetAction(
+                glyph = "\u25A3",
+                title = "Scan QR code",
+                subtitle = "Point the camera at the code your service shows",
+                onClick = onScan,
+            )
+
+            SheetAction(
+                glyph = "\u270E",
+                title = "Enter a setup key",
+                subtitle = "Type the issuer and secret by hand",
+                onClick = onManual,
+            )
+
+            Spacer(Modifier.height(22.dp))
         }
     }
 }

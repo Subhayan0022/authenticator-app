@@ -1,147 +1,202 @@
 package io.github.subhayan0022.authenticator.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import io.github.subhayan0022.authenticator.data.OtpType
+import io.github.subhayan0022.authenticator.ui.theme.ScreenPadding
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAccountScreen(
     form: AddAccountFormState,
+    groups: List<String>,
     onIssuerChange: (String) -> Unit,
     onLabelChange: (String) -> Unit,
     onGroupChange: (String) -> Unit,
     onSecretChange: (String) -> Unit,
     onSave: () -> Unit,
-    onScanClick: () -> Unit,
     onUnlockAndSave: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
+    val colors = MaterialTheme.colorScheme
+
+    Surface(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Add account") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Cancel") }
-                },
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            OutlinedButton(
-                onClick = onScanClick,
-                modifier = Modifier.fillMaxWidth(),
+        color = colors.background,
+        contentColor = colors.onBackground,
+    ) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            ScreenTopBar(title = "Add account", onBack = onBack)
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                Text("Scan QR code")
+                SectionLabel("ACCOUNT")
+
+                FormCard {
+                    FieldRow(
+                        label = "Issuer",
+                        value = form.issuer,
+                        onValueChange = onIssuerChange,
+                        placeholder = "GitHub",
+                        error = form.issuerError,
+                    )
+
+                    FieldDivider()
+
+                    FieldRow(
+                        label = "Account",
+                        value = form.label,
+                        onValueChange = onLabelChange,
+                        placeholder = "alice@example.com",
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
+                        ),
+                    )
+
+                    FieldDivider()
+
+                    FieldRow(
+                        label = "Secret key",
+                        value = form.secret,
+                        onValueChange = onSecretChange,
+                        placeholder = "JBSWY3DPEHPK3PXP",
+                        error = form.secretError,
+                        hint = if (form.scanned) {
+                            scannedSummary(form)
+                        } else {
+                            "Base32 — spaces, dashes and case are ignored"
+                        },
+                        mono = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Characters,
+                            imeAction = ImeAction.Done,
+                        ),
+                    )
+                }
+
+                SectionLabel("GROUP")
+
+                GroupPicker(
+                    groups = groups,
+                    selected = form.group,
+                    onSelect = onGroupChange,
+                )
+
+                Spacer(Modifier.height(28.dp))
             }
 
-            OutlinedTextField(
-                value = form.issuer,
-                onValueChange = onIssuerChange,
-                label = { Text("Issuer") },
-                placeholder = { Text("GitHub") },
-                singleLine = true,
-                isError = form.issuerError != null,
-                supportingText = form.issuerError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
+            PrimaryBar(
+                label = when {
+                    form.saving -> "Saving…"
+                    form.needsAuth -> "Unlock and save"
+                    else -> "Save"
+                },
+                enabled = form.canSave,
+                onClick = if (form.needsAuth) onUnlockAndSave else onSave,
+                error = form.saveError,
+            )
+        }
+    }
+}
+
+@Composable
+fun GroupPicker(
+    groups: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    var creating by remember { mutableStateOf(selected.isNotBlank() && selected !in groups) }
+
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = ScreenPadding),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Pill(
+                text = "None",
+                selected = !creating && selected.isBlank(),
+                onClick = {
+                    creating = false
+                    onSelect("")
+                },
             )
 
-            OutlinedTextField(
-                value = form.label,
-                onValueChange = onLabelChange,
-                label = { Text("Account") },
-                placeholder = { Text("alice@example.com") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = form.group,
-                onValueChange = onGroupChange,
-                label = { Text("Group (optional)") },
-                placeholder = { Text("Work") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = form.secret,
-                onValueChange = onSecretChange,
-                label = { Text("Secret key") },
-                placeholder = { Text("JBSWY3DPEHPK3PXP") },
-                singleLine = true,
-                isError = form.secretError != null,
-                supportingText = form.secretError?.let { { Text(it) } }
-                    ?: { Text("Base32 — spaces, dashes and case are ignored") },
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                    imeAction = ImeAction.Done,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            if (form.scanned) {
-                Text(
-                    "From QR code: ${form.type}, ${form.algorithm.removePrefix("Hmac")}, " +
-                        "${form.digits} digits, " +
-                        if (form.type == OtpType.HOTP) {
-                            "counter ${form.counter}"
-                        } else {
-                            "${form.periodSeconds}s period"
-                        },
-                    style = MaterialTheme.typography.bodySmall,
+            groups.forEach { group ->
+                Pill(
+                    text = group,
+                    selected = !creating && selected == group,
+                    onClick = {
+                        creating = false
+                        onSelect(group)
+                    },
                 )
             }
 
-            form.saveError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
-            }
+            Pill(
+                text = "+ New",
+                selected = creating,
+                onClick = {
+                    if (!creating) {
+                        creating = true
+                        onSelect("")
+                    }
+                },
+            )
+        }
 
-            Button(
-                onClick = if (form.needsAuth) onUnlockAndSave else onSave,
-                enabled = form.canSave,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    when {
-                        form.saving -> "Saving..."
-                        form.needsAuth -> "Unlock and save"
-                        else -> "Save"
-                    },
+        if (creating) {
+            Spacer(Modifier.height(12.dp))
+
+            FormCard {
+                FieldRow(
+                    label = "New group",
+                    value = selected,
+                    onValueChange = onSelect,
+                    placeholder = "Work",
                 )
             }
         }
     }
+}
+
+private fun scannedSummary(form: AddAccountFormState): String {
+    val cadence = if (form.type == OtpType.HOTP) {
+        "counter ${form.counter}"
+    } else {
+        "${form.periodSeconds}s"
+    }
+
+    return "From QR · ${form.type} · ${form.algorithm.removePrefix("Hmac")} · " +
+        "${form.digits} digits · $cadence"
 }

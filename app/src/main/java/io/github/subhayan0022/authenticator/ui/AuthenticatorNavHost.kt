@@ -3,6 +3,9 @@ package io.github.subhayan0022.authenticator.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,8 +37,6 @@ data object SettingsRoute
 @Serializable
 data class BackupRoute(val importing: Boolean)
 
-private const val SCANNED_URI = "scannedUri"
-
 @Composable
 fun AuthenticatorNavHost(
     repository: AccountRepository,
@@ -55,6 +56,10 @@ fun AuthenticatorNavHost(
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
+    val groupsFlow = remember(repository) { repository.observeGroups() }
+    val groups by groupsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    var scannedUri by remember { mutableStateOf<String?>(null) }
 
     NavHost(
         navController = navController,
@@ -69,7 +74,8 @@ fun AuthenticatorNavHost(
             AccountListScreen(
                 state = listState,
                 onUnlockClick = { onUnlockRequest {} },
-                onAddAccountClick = { navController.navigate(AddAccountRoute) },
+                onScanAccount = { navController.navigate(ScanQrRoute) },
+                onEnterManually = { navController.navigate(AddAccountRoute) },
                 onDelete = onDeleteAccount,
                 onEditAccount = { navController.navigate(EditAccountRoute(it)) },
                 onMove = onMoveAccount,
@@ -87,32 +93,28 @@ fun AuthenticatorNavHost(
             )
         }
 
-        composable<AddAccountRoute> { entry ->
+        composable<AddAccountRoute> {
             val addViewModel: AddAccountViewModel =
                 viewModel(factory = AddAccountViewModel.factory(repository))
             val form by addViewModel.form.collectAsStateWithLifecycle()
 
             SecureScreen()
 
-            val scanned by entry.savedStateHandle
-                .getStateFlow<String?>(SCANNED_URI, null)
-                .collectAsStateWithLifecycle()
-
-            LaunchedEffect(scanned) {
-                scanned?.let { raw ->
+            LaunchedEffect(scannedUri) {
+                scannedUri?.let { raw ->
                     addViewModel.applyScannedUri(raw)
-                    entry.savedStateHandle[SCANNED_URI] = null
+                    scannedUri = null
                 }
             }
 
             AddAccountScreen(
                 form = form,
+                groups = groups,
                 onIssuerChange = addViewModel::onIssuerChange,
                 onLabelChange = addViewModel::onLabelChange,
                 onGroupChange = addViewModel::onGroupChange,
                 onSecretChange = addViewModel::onSecretChange,
                 onSave = { addViewModel.save { navController.popBackStack() } },
-                onScanClick = { navController.navigate(ScanQrRoute) },
                 onUnlockAndSave = {
                     onUnlockRequest { addViewModel.save { navController.popBackStack() } }
                 },
@@ -123,10 +125,10 @@ fun AuthenticatorNavHost(
         composable<ScanQrRoute> {
             ScanQrScreen(
                 onQrCode = { text ->
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set(SCANNED_URI, text)
-                    navController.popBackStack()
+                    scannedUri = text
+                    navController.navigate(AddAccountRoute) {
+                        popUpTo(ScanQrRoute) { inclusive = true }
+                    }
                 },
                 onBack = { navController.popBackStack() },
             )
@@ -195,6 +197,7 @@ fun AuthenticatorNavHost(
 
             EditAccountScreen(
                 form = form,
+                groups = groups,
                 onIssuerChange = editViewModel::onIssuerChange,
                 onLabelChange = editViewModel::onLabelChange,
                 onGroupChange = editViewModel::onGroupChange,

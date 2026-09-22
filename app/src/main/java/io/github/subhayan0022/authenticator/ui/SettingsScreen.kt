@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,12 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.subhayan0022.authenticator.data.LockSettings
 import io.github.subhayan0022.authenticator.ui.theme.IssuerLabelStyle
+import io.github.subhayan0022.authenticator.ui.theme.RowInset
+import io.github.subhayan0022.authenticator.ui.theme.ScreenPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val ScreenPadding = 20.dp
-private val CardCorner = 14.dp
-private val RowInset = 18.dp
 private const val ConfirmDelayMillis = 320L
 
 @Composable
@@ -87,20 +85,20 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding(),
         ) {
-            Header(onBack = onBack)
+            ScreenTopBar(title = "Settings", onBack = onBack)
 
             SectionLabel("SECURITY")
 
-            SettingsCard {
+            FormCard {
                 ToggleRow(
                     title = "Strict mode",
-                    subtitle = "Never keeps secrets in memory. Locks on a fixed timer.",
+                    subtitle = "Never holds secrets in memory",
                     checked = strictMode,
                     onCheckedChange = onStrictModeChange,
                     onInfoClick = { strictInfoOpen = true },
                 )
 
-                RowDivider()
+                FieldDivider()
 
                 ActionRow(
                     title = "Auto-lock",
@@ -113,13 +111,13 @@ fun SettingsScreen(
 
             SectionLabel("BACKUP")
 
-            SettingsCard {
+            FormCard {
                 ActionRow(title = "Export", onClick = onExportClick)
-                RowDivider()
+                FieldDivider()
                 ActionRow(title = "Import", onClick = onImportClick)
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(34.dp))
         }
     }
 
@@ -163,71 +161,6 @@ private val StrictModeInfo = listOf(
 )
 
 @Composable
-private fun Header(onBack: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp)) {
-        Box(
-            Modifier
-                .padding(start = 6.dp)
-                .size(44.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onBack)
-                .semantics { contentDescription = "Back" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "←",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        Text(
-            "Settings",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(start = ScreenPadding, top = 2.dp),
-        )
-    }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style = IssuerLabelStyle,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(
-            start = ScreenPadding,
-            end = ScreenPadding,
-            top = 18.dp,
-            bottom = 10.dp,
-        ),
-    )
-}
-
-@Composable
-private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = ScreenPadding)
-            .clip(RoundedCornerShape(CardCorner))
-            .background(MaterialTheme.colorScheme.surface),
-        content = content,
-    )
-}
-
-@Composable
-private fun RowDivider() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = RowInset)
-            .height(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant),
-    )
-}
-
-@Composable
 private fun ToggleRow(
     title: String,
     subtitle: String,
@@ -241,7 +174,7 @@ private fun ToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch)
-            .padding(start = RowInset, end = 14.dp, top = 14.dp, bottom = 14.dp),
+            .padding(start = RowInset, end = 14.dp, top = 17.dp, bottom = 17.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
@@ -259,7 +192,7 @@ private fun ToggleRow(
                 }
             }
 
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
@@ -286,7 +219,7 @@ private fun ToggleRow(
 private fun InfoButton(description: String, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
 
-    Box(Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(19.dp), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
                 .requiredSize(48.dp)
@@ -297,15 +230,15 @@ private fun InfoButton(description: String, onClick: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(19.dp)
                     .border(1.dp, colors.onSurfaceVariant, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     "i",
                     style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 10.sp,
-                        lineHeight = 12.sp,
+                        fontSize = 11.sp,
+                        lineHeight = 13.sp,
                     ),
                     color = colors.onSurfaceVariant,
                 )
@@ -322,7 +255,7 @@ private fun ActionRow(title: String, value: String? = null, onClick: () -> Unit)
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = RowInset, end = 16.dp, top = 16.dp, bottom = 16.dp),
+            .padding(start = RowInset, end = 16.dp, top = 19.dp, bottom = 19.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -346,16 +279,6 @@ private fun ActionRow(title: String, value: String? = null, onClick: () -> Unit)
             color = colors.onSurfaceVariant,
         )
     }
-}
-
-@Composable
-private fun Footnote(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 10.dp),
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -456,7 +379,7 @@ private fun OptionRow(label: String, selected: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(12.dp))
             .background(fill)
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = 12.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 17.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

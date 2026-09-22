@@ -21,6 +21,8 @@ private val DarkScheme = darkColorScheme(
     outline = DarkOutline,
     outlineVariant = DarkDivider,
     surfaceContainerHighest = DarkTrack,
+    error = DarkError,
+    onError = DarkBackground,
 )
 
 private val LightScheme = lightColorScheme(
@@ -38,6 +40,8 @@ private val LightScheme = lightColorScheme(
     outline = LightOutline,
     outlineVariant = LightDivider,
     surfaceContainerHighest = LightTrack,
+    error = LightError,
+    onError = LightBackground,
 )
 
 @Composable

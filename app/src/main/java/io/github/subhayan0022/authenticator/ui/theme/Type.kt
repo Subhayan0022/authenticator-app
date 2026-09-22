@@ -23,23 +23,23 @@ val PlexMono = FontFamily(
 val CodeStyle = TextStyle(
     fontFamily = PlexMono,
     fontWeight = FontWeight.Medium,
-    fontSize = 31.sp,
-    lineHeight = 33.sp,
+    fontSize = 34.sp,
+    lineHeight = 36.sp,
     letterSpacing = 0.03.em,
 )
 
 val TimerStyle = TextStyle(
     fontFamily = PlexMono,
     fontWeight = FontWeight.Normal,
-    fontSize = 12.sp,
+    fontSize = 13.sp,
     letterSpacing = 0.02.em,
 )
 
 val IssuerLabelStyle = TextStyle(
     fontFamily = Archivo,
     fontWeight = FontWeight.SemiBold,
-    fontSize = 10.5.sp,
-    lineHeight = 13.sp,
+    fontSize = 11.5.sp,
+    lineHeight = 14.sp,
     letterSpacing = 0.12.em,
 )
 
@@ -47,51 +47,51 @@ val Typography = Typography(
     titleLarge = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
         letterSpacing = (-0.02).em,
     ),
     titleMedium = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
     ),
     titleSmall = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 13.5.sp,
-        lineHeight = 18.sp,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
     ),
     bodyLarge = TextStyle(
+        fontFamily = Archivo,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.5.sp,
+        lineHeight = 23.sp,
+    ),
+    bodyMedium = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.Normal,
         fontSize = 14.5.sp,
         lineHeight = 21.sp,
     ),
-    bodyMedium = TextStyle(
+    bodySmall = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
         lineHeight = 19.sp,
     ),
-    bodySmall = TextStyle(
-        fontFamily = Archivo,
-        fontWeight = FontWeight.Normal,
-        fontSize = 11.5.sp,
-        lineHeight = 17.sp,
-    ),
     labelLarge = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
+        fontSize = 14.5.sp,
+        lineHeight = 20.sp,
     ),
     labelMedium = TextStyle(
         fontFamily = Archivo,
         fontWeight = FontWeight.Medium,
-        fontSize = 12.5.sp,
-        lineHeight = 17.sp,
+        fontSize = 13.5.sp,
+        lineHeight = 19.sp,
     ),
     labelSmall = IssuerLabelStyle,
 )
