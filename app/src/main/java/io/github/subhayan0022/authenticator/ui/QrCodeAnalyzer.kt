@@ -23,6 +23,11 @@ class QrCodeAnalyzer(
     @Volatile
     private var handled = false
 
+    /** Lets the screen accept another code after the user rejects a scan. */
+    fun rearm() {
+        handled = false
+    }
+
     override fun analyze(image: ImageProxy) {
         try {
             if (handled) return
@@ -43,14 +48,18 @@ class QrCodeAnalyzer(
         val luminance = ByteArray(buffer.remaining())
         buffer.get(luminance)
 
+        val side = minOf(image.width, image.height)
+        val left = (image.width - side) / 2
+        val top = (image.height - side) / 2
+
         val source = PlanarYUVLuminanceSource(
             luminance,
             plane.rowStride,
             image.height,
-            0,
-            0,
-            image.width,
-            image.height,
+            left,
+            top,
+            side,
+            side,
             false,
         )
 

@@ -3,9 +3,7 @@ package io.github.subhayan0022.authenticator.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,8 +57,6 @@ fun AuthenticatorNavHost(
     val groupsFlow = remember(repository) { repository.observeGroups() }
     val groups by groupsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    var scannedUri by remember { mutableStateOf<String?>(null) }
-
     NavHost(
         navController = navController,
         startDestination = AccountListRoute,
@@ -100,13 +96,6 @@ fun AuthenticatorNavHost(
 
             SecureScreen()
 
-            LaunchedEffect(scannedUri) {
-                scannedUri?.let { raw ->
-                    addViewModel.applyScannedUri(raw)
-                    scannedUri = null
-                }
-            }
-
             AddAccountScreen(
                 form = form,
                 groups = groups,
@@ -123,13 +112,22 @@ fun AuthenticatorNavHost(
         }
 
         composable<ScanQrRoute> {
+            SecureScreen()
+
+            val scanViewModel: AddAccountViewModel =
+                viewModel(factory = AddAccountViewModel.factory(repository))
+            val scanForm by scanViewModel.form.collectAsStateWithLifecycle()
+
             ScanQrScreen(
-                onQrCode = { text ->
-                    scannedUri = text
-                    navController.navigate(AddAccountRoute) {
-                        popUpTo(ScanQrRoute) { inclusive = true }
-                    }
+                form = scanForm,
+                groups = groups,
+                onScanned = scanViewModel::applyScannedUri,
+                onGroupChange = scanViewModel::onGroupChange,
+                onSave = { scanViewModel.save { navController.popBackStack() } },
+                onUnlockAndSave = {
+                    onUnlockRequest { scanViewModel.save { navController.popBackStack() } }
                 },
+                onRescan = scanViewModel::reset,
                 onBack = { navController.popBackStack() },
             )
         }

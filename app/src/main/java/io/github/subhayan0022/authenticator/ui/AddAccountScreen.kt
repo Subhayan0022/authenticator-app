@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import io.github.subhayan0022.authenticator.data.OtpType
 import io.github.subhayan0022.authenticator.ui.theme.ScreenPadding
 
 @Composable
@@ -88,11 +87,7 @@ fun AddAccountScreen(
                         onValueChange = onSecretChange,
                         placeholder = "JBSWY3DPEHPK3PXP",
                         error = form.secretError,
-                        hint = if (form.scanned) {
-                            scannedSummary(form)
-                        } else {
-                            "Base32 — spaces, dashes and case are ignored"
-                        },
+                        hint = "Base32 — spaces, dashes and case are ignored",
                         mono = true,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Characters,
@@ -188,15 +183,4 @@ fun GroupPicker(
             }
         }
     }
-}
-
-private fun scannedSummary(form: AddAccountFormState): String {
-    val cadence = if (form.type == OtpType.HOTP) {
-        "counter ${form.counter}"
-    } else {
-        "${form.periodSeconds}s"
-    }
-
-    return "From QR · ${form.type} · ${form.algorithm.removePrefix("Hmac")} · " +
-        "${form.digits} digits · $cadence"
 }

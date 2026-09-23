@@ -101,6 +101,11 @@ class AddAccountViewModel(
         }
     }
 
+    /** Drops a scanned result so the scanner can take another code. */
+    fun reset() {
+        _form.value = AddAccountFormState()
+    }
+
     /** Fills the form from a scanned otpauth link, or reports why it was rejected. */
     fun applyScannedUri(raw: String) {
         val data = try {
