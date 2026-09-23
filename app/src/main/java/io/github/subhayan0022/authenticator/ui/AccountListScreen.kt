@@ -168,7 +168,7 @@ private fun ScreenHeader(onSettingsClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text("Authenticator", style = MaterialTheme.typography.titleLarge)
+        Text("Lockstep", style = MaterialTheme.typography.titleLarge)
 
         TextButton(onClick = onSettingsClick) {
             Text(
