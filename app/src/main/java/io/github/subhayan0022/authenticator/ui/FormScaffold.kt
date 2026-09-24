@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.subhayan0022.authenticator.ui.theme.CardCorner
 import io.github.subhayan0022.authenticator.ui.theme.IssuerLabelStyle
@@ -244,4 +246,13 @@ fun PrimaryBar(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+@Composable
+fun AppSpinner(modifier: Modifier = Modifier, size: Dp = 26.dp) {
+    CircularProgressIndicator(
+        modifier = modifier.size(size),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        strokeWidth = size / 10,
+    )
 }

@@ -28,7 +28,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -103,7 +102,7 @@ fun AccountListScreen(
         onCopyCode(code)
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar("Code copied - clears in 30s")
+            snackbarHostState.showSnackbar("Code copied — clears in 30s")
         }
     }
 
@@ -117,7 +116,7 @@ fun AccountListScreen(
 
             Box(Modifier.weight(1f)) {
                 when (state) {
-                    AccountListUiState.Loading -> Centered { CircularProgressIndicator() }
+                    AccountListUiState.Loading -> Centered { AppSpinner() }
 
                     AccountListUiState.Locked -> Centered {
                         Text("Locked", style = MaterialTheme.typography.titleLarge)
@@ -151,9 +150,14 @@ fun AccountListScreen(
                 }
 
                 SnackbarHost(
-                    snackbarHostState,
-                    Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
-                )
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 86.dp),
+                ) { data ->
+                    AppSnackbar(message = data.visuals.message)
+                }
             }
         }
     }
@@ -919,6 +923,28 @@ private fun AddAccountSheet(
 
             Spacer(Modifier.height(22.dp))
         }
+    }
+}
+
+@Composable
+private fun AppSnackbar(message: String) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(14.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ScreenPadding)
+            .clip(shape)
+            .background(colors.surfaceContainerHigh)
+            .border(1.dp, colors.outlineVariant, shape)
+            .padding(horizontal = 18.dp, vertical = 15.dp),
+    ) {
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurface,
+        )
     }
 }
 

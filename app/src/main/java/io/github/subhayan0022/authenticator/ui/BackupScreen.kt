@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -119,11 +117,7 @@ fun BackupScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = colors.onSurfaceVariant,
-                            strokeWidth = 2.dp,
-                        )
+                        AppSpinner(size = 18.dp)
 
                         Text(
                             "Deriving the key — slow on purpose.",
