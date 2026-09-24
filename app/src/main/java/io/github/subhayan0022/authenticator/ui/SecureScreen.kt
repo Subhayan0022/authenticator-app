@@ -8,10 +8,7 @@ import androidx.compose.runtime.DisposableEffect
 
 private var secureScreenCount = 0
 
-private const val SCREENSHOT_CAPTURE_MODE = true
-
 private fun acquireSecure(activity: Activity?) {
-    if (SCREENSHOT_CAPTURE_MODE) return
     val window = activity?.window ?: return
     if (secureScreenCount++ == 0) {
         window.setFlags(
@@ -22,7 +19,6 @@ private fun acquireSecure(activity: Activity?) {
 }
 
 private fun releaseSecure(activity: Activity?) {
-    if (SCREENSHOT_CAPTURE_MODE) return
     val window = activity?.window ?: return
     if (--secureScreenCount <= 0) {
         secureScreenCount = 0
