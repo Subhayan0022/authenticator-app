@@ -1,5 +1,10 @@
 package io.github.subhayan0022.authenticator.ui
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,6 +21,9 @@ import io.github.subhayan0022.authenticator.data.AccountRepository
 import io.github.subhayan0022.authenticator.data.BackupReminder
 import io.github.subhayan0022.authenticator.data.LockSettings
 import kotlinx.serialization.Serializable
+
+private const val SlideMillis = 260
+private const val FadeMillis = 180
 
 @Serializable
 data object AccountListRoute
@@ -61,6 +69,18 @@ fun AuthenticatorNavHost(
         navController = navController,
         startDestination = AccountListRoute,
         modifier = modifier,
+        enterTransition = {
+            slideInHorizontally(tween(SlideMillis)) { it / 5 } + fadeIn(tween(FadeMillis))
+        },
+        exitTransition = {
+            slideOutHorizontally(tween(SlideMillis)) { -it / 8 } + fadeOut(tween(FadeMillis))
+        },
+        popEnterTransition = {
+            slideInHorizontally(tween(SlideMillis)) { -it / 8 } + fadeIn(tween(FadeMillis))
+        },
+        popExitTransition = {
+            slideOutHorizontally(tween(SlideMillis)) { it / 5 } + fadeOut(tween(FadeMillis))
+        },
     ) {
         composable<AccountListRoute> {
             SecureScreen()
