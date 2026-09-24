@@ -64,10 +64,20 @@ shortly after. Group your accounts, search them, and drag them into whatever ord
 
 ## Install
 
-Lockstep is working toward its first release. When v1 ships it will be available as a signed APK
-here on GitHub and through F-Droid.
+Download the latest signed APK from the [releases page](https://github.com/Subhayan0022/lockstep/releases/latest).
 
-Watch this repository to hear when it lands.
+Verify what you downloaded before installing it — the SHA-256 of the APK is published with each
+release, and you can check the signing certificate directly:
+
+```sh
+sha256sum lockstep-1.0.apk
+apksigner verify --print-certs lockstep-1.0.apk
+```
+
+The signing certificate SHA-256 is `4dcb42f2ecf2131f0551c9103d9c28d1cf8cc14aca36bdb76b11b0f63fde3d4b`
+and will stay the same for every future release.
+
+An F-Droid listing is planned.
 
 ## Requirements
 
@@ -77,8 +87,8 @@ Watch this repository to hear when it lands.
 ## Building from source
 
 ```sh
-git clone https://github.com/Subhayan0022/authenticator-app.git
-cd authenticator-app
+git clone https://github.com/Subhayan0022/lockstep.git
+cd lockstep
 ./gradlew assembleDebug
 ```
 
