@@ -25,8 +25,15 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            // TEMPORARY: signs release with the debug key so R8 output can be
+            // installed and tested. Remove when the real keystore lands.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {

@@ -35,8 +35,8 @@ object AppUnlock {
         )
 
         val info = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock Authenticator")
-            .setSubtitle("Confirm it's you to view your codes")
+            .setTitle("Unlock Lockstep")
+            .setSubtitle("Confirm it's you to continue")
             .setAllowedAuthenticators(AUTHENTICATORS)
             .build()
 
