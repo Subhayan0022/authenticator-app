@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.subhayan0022.authenticator.ui.theme.CardCorner
 import io.github.subhayan0022.authenticator.ui.theme.IssuerLabelStyle
@@ -121,6 +122,7 @@ fun FieldRow(
     hint: String? = null,
     mono: Boolean = false,
     enabled: Boolean = true,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -156,6 +158,7 @@ fun FieldRow(
                     color = if (enabled) colors.onSurface else colors.onSurfaceVariant,
                 ),
                 cursorBrush = SolidColor(colors.onSurface),
+                visualTransformation = visualTransformation,
                 keyboardOptions = keyboardOptions,
                 modifier = Modifier.fillMaxWidth(),
             )
