@@ -66,7 +66,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.subhayan0022.authenticator.data.OtpType
 import io.github.subhayan0022.authenticator.ui.theme.IssuerLabelStyle
-import io.github.subhayan0022.authenticator.ui.theme.RowInset
 import io.github.subhayan0022.authenticator.ui.theme.ScreenPadding
 import java.util.concurrent.Executors
 import kotlinx.coroutines.delay
@@ -364,19 +363,6 @@ private fun settingsSummary(form: AddAccountFormState): String {
 
     return "${form.type} · ${form.algorithm.removePrefix("Hmac")} · " +
         "${form.digits} digits · $cadence"
-}
-
-@Composable
-private fun DetailRow(label: String, value: String) {
-    val colors = MaterialTheme.colorScheme
-
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = RowInset, vertical = 15.dp),
-    ) {
-        Text(label.uppercase(), style = IssuerLabelStyle, color = colors.onSurfaceVariant)
-        Spacer(Modifier.height(8.dp))
-        Text(value, style = MaterialTheme.typography.bodyLarge)
-    }
 }
 
 @Composable

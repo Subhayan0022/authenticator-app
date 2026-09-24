@@ -43,6 +43,9 @@ data object SettingsRoute
 @Serializable
 data class BackupRoute(val importing: Boolean)
 
+@Serializable
+data object TimeCheckRoute
+
 @Composable
 fun AuthenticatorNavHost(
     repository: AccountRepository,
@@ -165,8 +168,13 @@ fun AuthenticatorNavHost(
                 onTimeoutChange = lockSettings::setIdleTimeoutSeconds,
                 onExportClick = { navController.navigate(BackupRoute(importing = false)) },
                 onImportClick = { navController.navigate(BackupRoute(importing = true)) },
+                onTimeCheckClick = { navController.navigate(TimeCheckRoute) },
                 onBack = { navController.popBackStack() },
             )
+        }
+
+        composable<TimeCheckRoute> {
+            TimeCheckScreen(onBack = { navController.popBackStack() })
         }
 
         composable<BackupRoute> { entry ->

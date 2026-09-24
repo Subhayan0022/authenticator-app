@@ -256,3 +256,16 @@ fun AppSpinner(modifier: Modifier = Modifier, size: Dp = 26.dp) {
         strokeWidth = size / 10,
     )
 }
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    val colors = MaterialTheme.colorScheme
+
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = RowInset, vertical = 15.dp),
+    ) {
+        Text(label.uppercase(), style = IssuerLabelStyle, color = colors.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}

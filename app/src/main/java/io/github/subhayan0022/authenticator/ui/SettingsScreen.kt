@@ -66,6 +66,7 @@ fun SettingsScreen(
     onTimeoutChange: (Int) -> Unit,
     onExportClick: () -> Unit,
     onImportClick: () -> Unit,
+    onTimeCheckClick: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -115,6 +116,12 @@ fun SettingsScreen(
                 ActionRow(title = "Export", onClick = onExportClick)
                 FieldDivider()
                 ActionRow(title = "Import", onClick = onImportClick)
+            }
+
+            SectionLabel("DIAGNOSTICS")
+
+            FormCard {
+                ActionRow(title = "Time check", onClick = onTimeCheckClick)
             }
 
             Spacer(Modifier.height(34.dp))
