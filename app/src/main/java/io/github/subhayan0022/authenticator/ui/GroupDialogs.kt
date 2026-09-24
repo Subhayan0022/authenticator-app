@@ -1,17 +1,17 @@
 package io.github.subhayan0022.authenticator.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,162 +19,161 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.subhayan0022.authenticator.data.isReservedGroup
+import io.github.subhayan0022.authenticator.ui.theme.CardCorner
+import io.github.subhayan0022.authenticator.ui.theme.RowInset
+
+private const val ReservedMessage = "\"All\" is the built-in filter and cannot be used."
 
 @Composable
-fun GroupManagerDialog(
+fun GroupManagerSheet(
     groups: List<String>,
     onDismiss: () -> Unit,
     onCreate: (String) -> Unit,
     onRename: (String, String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    OwnOverlay()
+    val colors = MaterialTheme.colorScheme
 
-    var newName by remember { mutableStateOf("") }
     var renaming by remember { mutableStateOf<String?>(null) }
-    var confirmDelete by remember { mutableStateOf<String?>(null) }
+    var removing by remember { mutableStateOf<String?>(null) }
+    var creating by remember { mutableStateOf(false) }
+
+    val reserved: (String) -> String? = { if (isReservedGroup(it)) ReservedMessage else null }
 
     renaming?.let { original ->
-        RenameDialog(
-            original = original,
-            onDismiss = { renaming = null },
+        PromptSheet(
+            label = "Rename group",
+            title = original,
+            fieldLabel = "Group name",
+            initial = original,
+            placeholder = "Work",
+            confirmLabel = "Rename",
+            hint = "Using an existing name merges the two groups.",
+            validate = reserved,
             onConfirm = {
                 onRename(original, it)
                 renaming = null
             },
+            onDismiss = { renaming = null },
         )
         return
     }
 
-    confirmDelete?.let { name ->
-        OwnOverlay()
-
-        AlertDialog(
-            onDismissRequest = { confirmDelete = null },
-            title = { Text("Remove $name?") },
-            text = {
-                Text(
-                    "The group disappears and its accounts become ungrouped. " +
-                        "No accounts or codes are deleted.",
-                )
+    removing?.let { name ->
+        ConfirmSheet(
+            label = "Remove group",
+            title = "Remove $name?",
+            body = "The group disappears and its accounts become ungrouped. " +
+                "No accounts or codes are deleted.",
+            confirmLabel = "Remove group",
+            destructive = true,
+            onConfirm = {
+                onDelete(name)
+                removing = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete(name)
-                        confirmDelete = null
-                    },
-                ) {
-                    Text("Remove")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = null }) { Text("Cancel") }
-            },
+            onDismiss = { removing = null },
         )
         return
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Groups") },
-        text = {
+    if (creating) {
+        PromptSheet(
+            label = "New group",
+            title = "Create a group",
+            fieldLabel = "Group name",
+            initial = "",
+            placeholder = "Work",
+            confirmLabel = "Create",
+            validate = reserved,
+            onConfirm = {
+                onCreate(it)
+                creating = false
+            },
+            onDismiss = { creating = false },
+        )
+        return
+    }
+
+    AppSheet(onDismiss = onDismiss) {
+        SheetHeading(label = "Groups", title = "Organise your accounts")
+
+        Spacer(Modifier.height(28.dp))
+
+        if (groups.isEmpty()) {
+            Text(
+                "No groups yet. Create one, then pick it when you add or edit an account.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+            )
+        } else {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(CardCorner))
+                    .background(colors.surface),
             ) {
-                if (groups.isEmpty()) {
-                    Text(
-                        "No groups yet. Create one below, then assign accounts to it " +
-                            "from their Edit screen.",
-                        style = MaterialTheme.typography.bodySmall,
+                groups.forEachIndexed { index, group ->
+                    if (index > 0) FieldDivider()
+
+                    GroupRow(
+                        name = group,
+                        onRename = { renaming = group },
+                        onRemove = { removing = group },
                     )
                 }
-
-                groups.forEach { group ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(group, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { renaming = group }) { Text("Rename") }
-                        TextButton(onClick = { confirmDelete = group }) { Text("Remove") }
-                    }
-                }
-
-                val reserved = isReservedGroup(newName)
-
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    label = { Text("New group") },
-                    singleLine = true,
-                    isError = reserved,
-                    supportingText = if (reserved) {
-                        { Text("\"All\" is the built-in filter and cannot be used.") }
-                    } else {
-                        null
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                )
-
-                TextButton(
-                    onClick = {
-                        onCreate(newName)
-                        newName = ""
-                    },
-                    enabled = newName.isNotBlank() && !reserved,
-                ) {
-                    Text("Create")
-                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        },
-    )
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        PrimaryButton(
+            label = "New group",
+            enabled = true,
+            onClick = { creating = true },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        SheetDismiss(label = "Done", onClick = onDismiss)
+    }
 }
 
 @Composable
-private fun RenameDialog(
-    original: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    OwnOverlay()
+private fun GroupRow(name: String, onRename: () -> Unit, onRemove: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
 
-    var name by remember { mutableStateOf(original) }
-    val reserved = isReservedGroup(name)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = RowInset, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            name,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+        )
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename $original") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Group name") },
-                singleLine = true,
-                isError = reserved,
-                supportingText = {
-                    if (reserved) {
-                        Text("\"All\" is the built-in filter and cannot be used.")
-                    } else {
-                        Text("Using an existing name merges the two groups.")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank() && !reserved) {
-                Text("Rename")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
+        GroupAction(label = "Rename", color = colors.onSurfaceVariant, onClick = onRename)
+        GroupAction(label = "Remove", color = colors.error, onClick = onRemove)
+    }
+}
+
+@Composable
+private fun GroupAction(label: String, color: Color, onClick: () -> Unit) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelMedium,
+        color = color,
+        modifier = Modifier
+            .clip(RoundedCornerShape(percent = 50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
     )
 }

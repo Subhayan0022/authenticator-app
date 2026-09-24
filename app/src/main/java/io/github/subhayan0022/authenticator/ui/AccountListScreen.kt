@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -27,7 +28,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -282,32 +282,33 @@ private fun ReadyContent(
 
             item(key = "groups") {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(start = ScreenPadding, end = ScreenPadding, bottom = 22.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 22.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Pill(
-                        text = "All",
-                        selected = state.selectedGroup == null,
-                        onClick = { onGroupSelected(null) },
-                    )
-
-                    state.groups.forEach { group ->
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .horizontalScroll(rememberScrollState())
+                            .padding(start = ScreenPadding, end = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Pill(
-                            text = group,
-                            selected = state.selectedGroup == group,
-                            onClick = { onGroupSelected(group) },
+                            text = "All",
+                            selected = state.selectedGroup == null,
+                            onClick = { onGroupSelected(null) },
                         )
+
+                        state.groups.forEach { group ->
+                            Pill(
+                                text = group,
+                                selected = state.selectedGroup == group,
+                                onClick = { onGroupSelected(group) },
+                            )
+                        }
                     }
 
-                    Pill(
-                        text = "Groups",
-                        selected = false,
-                        onClick = { groupManagerOpen = true },
-                    )
+                    ManageGroupsButton(onClick = { groupManagerOpen = true })
                 }
             }
 
@@ -487,7 +488,7 @@ private fun ReadyContent(
     }
 
     if (groupManagerOpen) {
-        GroupManagerDialog(
+        GroupManagerSheet(
             groups = state.groups,
             onDismiss = { groupManagerOpen = false },
             onCreate = onCreateGroup,
@@ -497,32 +498,20 @@ private fun ReadyContent(
     }
 
     pendingDelete?.let { target ->
-        OwnOverlay()
-
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete ${target.account.issuer}?") },
-            text = {
-                Text(
-                    "This permanently removes the secret for " +
-                        "${target.account.label.ifBlank { "this account" }}. " +
-                        "You will not be able to generate codes for it again " +
-                        "unless you re-add it from the original QR code.",
-                )
+        ConfirmSheet(
+            label = "Delete account",
+            title = "Delete ${target.account.issuer}?",
+            body = "This permanently removes the secret for " +
+                "${target.account.label.ifBlank { "this account" }}. You will not be " +
+                "able to generate codes for it again unless you re-add it from the " +
+                "original QR code.",
+            confirmLabel = "Delete account",
+            destructive = true,
+            onConfirm = {
+                onDelete(target.account.id)
+                pendingDelete = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete(target.account.id)
-                        pendingDelete = null
-                    },
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
-            },
+            onDismiss = { pendingDelete = null },
         )
     }
 }
@@ -586,6 +575,36 @@ private fun PillButton(text: String, onClick: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 13.dp),
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, color = colors.onPrimary)
+    }
+}
+
+@Composable
+private fun ManageGroupsButton(onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+
+    Box(
+        modifier = Modifier.padding(end = ScreenPadding).size(40.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .requiredSize(48.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onClick)
+                .semantics { contentDescription = "Manage groups" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).border(1.dp, colors.outline, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "\u270E",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

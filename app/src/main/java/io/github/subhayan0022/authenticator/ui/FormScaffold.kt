@@ -183,22 +183,31 @@ fun PrimaryButton(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    destructive: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
+
+    val container = when {
+        !enabled -> colors.surfaceContainerHighest
+        destructive -> colors.error
+        else -> colors.primary
+    }
+
+    val content = when {
+        !enabled -> colors.onSurfaceVariant
+        destructive -> colors.onError
+        else -> colors.onPrimary
+    }
 
     Box(
         modifier = modifier
             .height(56.dp)
             .clip(RoundedCornerShape(percent = 50))
-            .background(if (enabled) colors.primary else colors.surfaceContainerHighest)
+            .background(container)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (enabled) colors.onPrimary else colors.onSurfaceVariant,
-        )
+        Text(label, style = MaterialTheme.typography.labelLarge, color = content)
     }
 }
 
